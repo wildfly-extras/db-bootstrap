@@ -1,0 +1,43 @@
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="urn:jboss:domain:db_bootstrap:1.0" xmlns="urn:jboss:domain:db-bootstrap:1.0" elementFormDefault="qualified"
+    attributeFormDefault="unqualified" version="1.0">
+    <xs:element name="subsystem" type="subsystemType">
+        <xsd:complexType name="bootstrap-deployments">
+            <xsd:annotation>
+                <xsd:documentation>
+                    Enable database bootstrap sub system to run on the parse web deployment process and
+                    scan the listed archive files for the bootstrap annotation.
+                </xsd:documentation>
+            </xsd:annotation>
+            <xsd:sequence>
+                <xsd:element name="scan" type="scanType" minOccurs="0" />
+            </xsd:sequence>
+        </xsd:complexType>
+    </xs:element>
+
+    <xsd:complexType name="scanType">
+        <xsd:annotation>
+            <xsd:documentation>
+                A archive to scan for BootstrapDatabase annotations and execute the bootstrap code
+                before the archive is loaded by the container.
+            </xsd:documentation>
+        </xsd:annotation>
+        <xs:attribute name="filename" use="required" type="xs:string">
+            <xsd:annotation>
+                <xsd:documentation>
+                    The name of the archive to search for BootstrapDatabase annotations.
+                    eg. /content/my_archive.ear
+                </xsd:documentation>
+            </xsd:annotation>
+        </xs:attribute>
+        <xs:attribute name="filter-on-name" use="optional" type="xs:string">
+         <xsd:annotation>
+                <xsd:documentation>
+                   Specify a list of archive files inside the root archive to search
+                   in for the BootstrapDatabase annotations. This will speedup the deployment
+                   process for large archive files.
+                   eg: "core.jar, submodule-a.jar, submodule-b.jar"
+                </xsd:documentation>
+            </xsd:annotation>
+        </xs:attribute>
+    </xsd:complexType>
+</xs:schema>

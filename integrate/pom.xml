@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Copyright (C) 2014 Umbrew (Flemming.Harms@gmail.com)
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+            http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.wildfly.extension.db_bootstrap</groupId>
+        <artifactId>wildfly-db-bootstrap-subsystem-parent</artifactId>
+        <version>1.0.5</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>wildfly-extension-integrator</artifactId>
+
+    <name>Database bootstrap Extension</name>
+    <packaging>jar</packaging>
+
+    <properties>
+        <project.root>${basedir}/..</project.root>
+        <version.rhino.js>1.7R2</version.rhino.js>
+        <version.org.jboss.jandex>1.0.3.Final</version.org.jboss.jandex>
+        <version.org.apache.ant>1.8.2</version.org.apache.ant>
+        <module.dest.directory>${wildfly.home}/modules/org/wildfly/extension/db_bootstrap/main</module.dest.directory>
+        <!-- generated configs root dirs -->
+        <generated.configs>${basedir}/target/generated-configs</generated.configs>
+        <generated.configs.standalone>${generated.configs}/standalone/configuration</generated.configs.standalone>
+        <generated.configs.domain>${generated.configs}/domain/configuration</generated.configs.domain>
+        <generated.configs.examples>${generated.configs}/docs/examples/configs</generated.configs.examples>
+        <generated.configs.src.dir>${basedir}/src/main/resources</generated.configs.src.dir>
+    </properties>
+
+    <profiles>
+        <profile>
+            <id>arquillian-wildfly-managed</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>unpack</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>unpack</goal>
+                                </goals>
+                                <configuration>
+                                    <artifactItems>
+                                        <artifactItem>
+                                            <groupId>org.wildfly</groupId>
+                                            <artifactId>wildfly-dist</artifactId>
+                                            <version>${version.wildfly}</version>
+                                            <type>zip</type>
+                                            <overWrite>false</overWrite>
+                                            <outputDirectory>${project.root}/target/</outputDirectory>
+                                        </artifactItem>
+                                    </artifactItems>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>copy-hibernate-deb</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>copy</goal>
+                                </goals>
+                                <configuration>
+                                    <artifactItems>
+                                        <artifactItem>
+                                            <groupId>org.hibernate</groupId>
+                                            <artifactId>hibernate-core</artifactId>
+                                            <version>${version.org.hibernate}</version>
+                                            <overWrite>false</overWrite>
+                                            <outputDirectory>${module.dest.directory}</outputDirectory>
+                                        </artifactItem>
+                                        <artifactItem>
+                                            <groupId>org.hibernate</groupId>
+                                            <artifactId>hibernate-validator-annotation-processor</artifactId>
+                                            <version>${version.org.hibernate.validator}</version>
+                                            <overWrite>false</overWrite>
+                                            <outputDirectory>${module.dest.directory}</outputDirectory>
+                                        </artifactItem>
+                                        <artifactItem>
+                                            <groupId>org.hibernate.common</groupId>
+                                            <artifactId>hibernate-commons-annotations</artifactId>
+                                            <version>${version.org.hibernate.commons.annotations}</version>
+                                            <overWrite>false</overWrite>
+                                            <outputDirectory>${module.dest.directory}</outputDirectory>
+                                        </artifactItem>
+                                    </artifactItems>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <inherited>false</inherited>
+                <executions>
+                    <execution>
+                        <id>build-dist</id>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <phase>pre-integration-test</phase> <!-- Run after the package phase to make sure all artifacts are build before it execute the ant script -->
+                        <configuration>
+                            <target>
+                                <property name="ant.jboss.home" value="${wildfly.home}" />
+                                <ant antfile="build.xml" inheritRefs="true">
+                                    <target name="all" />
+                                </ant>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.jboss</groupId>
+                        <artifactId>jandex</artifactId>
+                        <version>${version.org.jboss.jandex}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.apache.ant</groupId>
+                        <artifactId>ant-apache-bsf</artifactId>
+                        <version>${version.org.apache.ant}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>rhino</groupId>
+                        <artifactId>js</artifactId>
+                        <version>${version.rhino.js}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+        </plugins>
+    </build>
+    <dependencies>
+        <dependency>
+            <groupId>org.wildfly.extension.db_bootstrap</groupId>
+            <artifactId>wildfly-db-bootstrap</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
+</project>

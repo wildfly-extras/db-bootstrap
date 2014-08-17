@@ -1,0 +1,61 @@
+<!--
+
+    Copyright (C) 2014 Umbrew (Flemming.Harms@gmail.com)
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+            http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+-->
+<project name="module-repository" basedir="." default="modules">
+
+    <import file="lib.xml"/>
+
+    <property name="output.dir" value="target/extension-release"/>
+    <property name="wildfly.dir" value="${ant.jboss.home}"/>
+
+    <target name="base" depends="clean-target, copy-files"/>
+
+    <target name="copy-files">
+        <copy todir="${output.dir}">
+            <fileset dir="src/main/resources">
+                <include name="standalone/configuration/**.xml"/>
+            </fileset>
+        </copy>
+    </target>
+
+    <target name="modules">
+        <module-def name="org.wildfly.extension.db_bootstrap">
+            <maven-resource group="org.wildfly.extension.db_bootstrap" artifact="wildfly-db-bootstrap"/>
+        </module-def>
+    </target>
+
+
+    <target name="clean-target">
+        <delete dir="${output.dir}"/>
+    </target>
+
+    <target name="clean" depends="clean-target">
+        <delete file="maven-ant-tasks.jar"/>
+    </target>
+
+    <target name="all" depends="base,modules, as-integrate"/>
+
+    <target name="as-integrate" depends="modules" description="Integrate extension into existing WildFly installation">
+        <echo message="jboss dir is: ${wildfly.dir}"/>
+        <fail unless="wildfly.dir" description="WildFly dir must be defined" message="property jboss.dir must be set"/>
+
+        <copy todir="${wildfly.dir}" verbose="true">
+            <fileset dir="${output.dir}"/>
+        </copy>
+
+    </target>
+</project>
