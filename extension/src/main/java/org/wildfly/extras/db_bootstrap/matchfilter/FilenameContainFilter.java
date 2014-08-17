@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.wildfly.extension.db_bootstrap.matchfilter;
+package org.wildfly.extras.db_bootstrap.matchfilter;
 
 import org.jboss.vfs.VirtualFile;
 import org.jboss.vfs.VisitorAttributes;

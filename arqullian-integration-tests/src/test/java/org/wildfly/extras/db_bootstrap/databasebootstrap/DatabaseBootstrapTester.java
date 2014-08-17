@@ -13,14 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.wildfly.extension.db_bootstrap.databasebootstrap;
+package org.wildfly.extras.db_bootstrap.databasebootstrap;
 
 import org.hibernate.SQLQuery;
 import org.hibernate.Session;
-import org.wildfly.extension.db_bootstrap.annotations.BootstrapDatabase;
-import org.wildfly.extension.db_bootstrap.annotations.BootstrapSchema;
-import org.wildfly.extension.db_bootstrap.annotations.UpdateSchema;
-
+import org.wildfly.extras.db_bootstrap.annotations.BootstrapDatabase;
+import org.wildfly.extras.db_bootstrap.annotations.BootstrapSchema;
+import org.wildfly.extras.db_bootstrap.annotations.UpdateSchema;
+/**
+ * @author Flemming Harms
+ */
 @BootstrapDatabase(hibernateCfg="META-INF/hibernate.cfg.xml", priority = 99)
 public class DatabaseBootstrapTester {
 

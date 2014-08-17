@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.wildfly.extension.db_bootstrap;
+package org.wildfly.extras.db_bootstrap;
 
 import static org.junit.Assert.assertEquals;
 
@@ -34,7 +34,7 @@ import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.wildfly.extension.db_bootstrap.databasebootstrap.DatabaseBootstrapTester;
+import org.wildfly.extras.db_bootstrap.databasebootstrap.DatabaseBootstrapTester;
 
 /**
  * @author Flemming Harms 

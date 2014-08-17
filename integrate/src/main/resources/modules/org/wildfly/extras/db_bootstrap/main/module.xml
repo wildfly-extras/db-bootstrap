@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<module xmlns="urn:jboss:module:1.1" name="org.wildfly.extension.db_bootstrap">
+<module xmlns="urn:jboss:module:1.3" name="org.wildfly.extras.db_bootstrap">
     <resources>
-        <resource-root path="wildfly-db-bootstrap.jar"/>
-        <resource-root path="hibernate-core-4.3.5.Final.jar"/>
-        <resource-root path="hibernate-validator-annotation-processor-5.1.0.Final.jar"/>
-        <resource-root path="hibernate-commons-annotations-4.0.4.Final.jar"/>
-       
+        <resource-root path="db-bootstrap.jar"/>
+        <artifact name="org.hibernate:hibernate-core:4.3.5.Final"/>
+        <artifact name="org.hibernate:hibernate-validator-annotation-processor:5.1.0.Final" />
+        <artifact name="org.hibernate.common:hibernate-commons-annotations:4.0.4.Final" />
         <!-- Insert resources here -->
     </resources>
 
