@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.wildfly.extension.db_bootstrap;
+package org.wildfly.extras.db_bootstrap;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -48,10 +48,10 @@ import org.jboss.vfs.VFSUtils;
 import org.jboss.vfs.VirtualFile;
 import org.jboss.vfs.VisitorAttributes;
 import org.scannotation.AnnotationDB;
-import org.wildfly.extension.db_bootstrap.annotations.BootstrapDatabase;
-import org.wildfly.extension.db_bootstrap.annotations.BootstrapSchema;
-import org.wildfly.extension.db_bootstrap.annotations.UpdateSchema;
-import org.wildfly.extension.db_bootstrap.matchfilter.FilenameContainFilter;
+import org.wildfly.extras.db_bootstrap.annotations.BootstrapDatabase;
+import org.wildfly.extras.db_bootstrap.annotations.BootstrapSchema;
+import org.wildfly.extras.db_bootstrap.annotations.UpdateSchema;
+import org.wildfly.extras.db_bootstrap.matchfilter.FilenameContainFilter;
 
 /**
  * Reacts on the deployment process on the specified archives in the configuration. It scan all JAR archives for

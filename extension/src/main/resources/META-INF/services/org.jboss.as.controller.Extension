@@ -1,2 +1,2 @@
-org.wildfly.extension.db_bootstrap.DbBootstrapExtension
+org.wildfly.extras.db_bootstrap.DbBootstrapExtension
 

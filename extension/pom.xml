@@ -21,13 +21,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.wildfly.extension.db_bootstrap</groupId>
-        <artifactId>wildfly-db-bootstrap-subsystem-parent</artifactId>
+        <groupId>org.wildfly.extras.db_bootstrap</groupId>
+        <artifactId>db-bootstrap-subsystem-parent</artifactId>
         <version>1.0.5</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>wildfly-db-bootstrap</artifactId>
+    <artifactId>db-bootstrap</artifactId>
 
     <name>Database bootstrap sub system</name>
 

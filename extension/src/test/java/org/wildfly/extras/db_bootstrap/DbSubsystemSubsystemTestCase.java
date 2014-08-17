@@ -13,21 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.wildfly.extension.db_bootstrap;
+package org.wildfly.extras.db_bootstrap;
 
-import org.jboss.as.server.deployment.DeploymentPhaseContext;
-import org.jboss.as.server.deployment.DeploymentUnit;
-import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
-import org.jboss.as.server.deployment.DeploymentUnitProcessor;
+import java.io.IOException;
 
-public class DbBootstrapSubsystemDetectorProcessor implements DeploymentUnitProcessor {
+import org.jboss.as.subsystem.test.AbstractSubsystemBaseTest;
+import org.wildfly.extras.db_bootstrap.DbBootstrapExtension;
 
-    @Override
-    public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
+public class DbSubsystemSubsystemTestCase extends AbstractSubsystemBaseTest {
+
+    public DbSubsystemSubsystemTestCase() {
+        super(DbBootstrapExtension.SUBSYSTEM_NAME, new DbBootstrapExtension());
     }
 
     @Override
-    public void undeploy(DeploymentUnit context) {
-
+    protected String getSubsystemXml() throws IOException {    	
+        return readResource("db_bootstrap-1.0.xml");
     }
+
 }

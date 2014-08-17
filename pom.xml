@@ -24,8 +24,8 @@
 		<groupId>org.jboss</groupId>
 		<version>14</version>
 	</parent>
-	<groupId>org.wildfly.extension.db_bootstrap</groupId>
-	<artifactId>wildfly-db-bootstrap-subsystem-parent</artifactId>
+	<groupId>org.wildfly.extras.db_bootstrap</groupId>
+	<artifactId>db-bootstrap-subsystem-parent</artifactId>
 	<version>1.0.5</version>
 	<packaging>pom</packaging>
 	<name>DB_BOOTSTRAP</name>
@@ -74,8 +74,8 @@
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
-				<groupId>org.wildfly.extension.db_bootstrap</groupId>
-				<artifactId>wildlfy-db-bootstrap</artifactId>
+				<groupId>org.wildfly.extras.db_bootstrap</groupId>
+				<artifactId>db-bootstrap</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 			<dependency>

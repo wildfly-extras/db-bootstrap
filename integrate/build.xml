@@ -33,8 +33,8 @@
     </target>
 
     <target name="modules">
-        <module-def name="org.wildfly.extension.db_bootstrap">
-            <maven-resource group="org.wildfly.extension.db_bootstrap" artifact="wildfly-db-bootstrap"/>
+        <module-def name="org.wildfly.extras.db_bootstrap">
+            <maven-resource group="org.wildfly.extras.db_bootstrap" artifact="db-bootstrap"/>
         </module-def>
     </target>
 

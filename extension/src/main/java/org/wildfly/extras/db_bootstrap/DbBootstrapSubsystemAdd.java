@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.wildfly.extension.db_bootstrap;
+package org.wildfly.extras.db_bootstrap;
 
 import java.util.List;
 
@@ -26,35 +26,25 @@ import org.jboss.as.server.DeploymentProcessorTarget;
 import org.jboss.as.server.deployment.Phase;
 import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.ServiceController;
-/**
- * @author Frank Vissing
- * @author Flemming Harms
- */
-final class DbBootstrapDetectorAdd extends AbstractBoottimeAddStepHandler {
+
+public class DbBootstrapSubsystemAdd extends AbstractBoottimeAddStepHandler {
 
     @Override
     protected void populateModel(ModelNode operation, ModelNode model) throws OperationFailedException {
-        DbBootstrapDetectorResourceDefinition.FILENAME.validateAndSet(operation, model);
-        DbBootstrapDetectorResourceDefinition.FILTER_ON_NAME.validateAndSet(operation, model);
+        //noting to do as we do not have any attributes in model
+        model.get(DbBootstrapExtension.EXTENSION_TYPE).setEmptyObject();
     }
 
     @Override
     protected void performBoottime(OperationContext context, ModelNode operation, ModelNode model, ServiceVerificationHandler verificationHandler, List<ServiceController<?>> newControllers) throws OperationFailedException {
-        final String filename = model.get(DbBootstrapExtension.FILENAME_ATTR).asString();
-        final String filterOnName =  model.get(DbBootstrapExtension.FILTER_ON_NAME_ATTR).asString();
+        DbBootstrapLogger.ROOT_LOGGER.subsystemStarted();
 
         context.addStep(new AbstractDeploymentChainStep() {
-            @Override
-            protected void execute(DeploymentProcessorTarget processorTarget) {
-                DbBootstrapLogger.ROOT_LOGGER.tracef("%s:'%s' %s:'%s'",DbBootstrapExtension.FILENAME_ATTR,filename,DbBootstrapExtension.FILTER_ON_NAME_ATTR,filterOnName);
-                try {
-                    processorTarget.addDeploymentProcessor(DbBootstrapExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_WEB_DEPLOYMENT,new DbBootstrapDetectorProcessor(filename,filterOnName));
-                } catch (Exception e) {
-                    DbBootstrapLogger.ROOT_LOGGER.error("Error in instanciating DbBootstraper add handler", e);
-                }
-
-
-            }
-        }, OperationContext.Stage.RUNTIME);
+                   @Override
+                   protected void execute(DeploymentProcessorTarget processorTarget) {
+                       // Initialize the deployer chain
+                       processorTarget.addDeploymentProcessor(DbBootstrapExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_WEB_DEPLOYMENT, new DbBootstrapSubsystemDetectorProcessor());
+                   }
+               }, OperationContext.Stage.RUNTIME);
     }
 }
