@@ -338,6 +338,8 @@
 						<exclude>**/LICENSE</exclude>
 						<exclude>src/test/resources/**</exclude>
 						<exclude>src/main/resources/**</exclude>
+						<exclude>**/standalone-db-bootstrap.xml</exclude>
+						<exclude>bin/**</exclude>
 					</excludes>
 				</configuration>
 				<executions>
