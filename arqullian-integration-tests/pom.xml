@@ -55,7 +55,6 @@
         <dependency>
             <groupId>org.wildfly.extras.db_bootstrap</groupId>
             <artifactId>db-bootstrap</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.wildfly</groupId>

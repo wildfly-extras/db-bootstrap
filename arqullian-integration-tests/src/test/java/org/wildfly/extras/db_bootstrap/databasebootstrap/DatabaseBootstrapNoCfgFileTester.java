@@ -17,28 +17,33 @@ package org.wildfly.extras.db_bootstrap.databasebootstrap;
 
 import org.hibernate.SQLQuery;
 import org.hibernate.Session;
+import org.hibernate.Transaction;
 import org.wildfly.extras.db_bootstrap.annotations.BootstrapDatabase;
 import org.wildfly.extras.db_bootstrap.annotations.BootstrapSchema;
 import org.wildfly.extras.db_bootstrap.annotations.UpdateSchema;
 /**
  * @author Flemming Harms
  */
-@BootstrapDatabase(hibernateCfg="META-INF/hibernate.cfg.xml", priority = 99)
-public class DatabaseBootstrapTester {
-
+@BootstrapDatabase(priority = 98)
+public class DatabaseBootstrapNoCfgFileTester {
+    
     @BootstrapSchema
-    private void createSchema(Session session) {
-        HibernateTestUtil.createTestSchema(session);
-        SQLQuery query = session.createSQLQuery("INSERT INTO PERSON VALUES (1, 'John')");
+    private void createSchema() {
+        Session session = HibernateTestUtil.getSessionFactory().openSession();
+        Transaction tx = session.beginTransaction();
+        SQLQuery query = session.createSQLQuery("INSERT INTO PERSON VALUES (2, 'Jane','Doe')");
         query.executeUpdate();
-        session.flush();
+        tx.commit();
+        session.close();
     }
 
     @UpdateSchema
-    private void updateSchema(Session session) {
-        HibernateTestUtil.alterTestSchema(session);
-        SQLQuery query = session.createSQLQuery("UPDATE PERSON SET Lastname ='Doe' WHERE PersonId = '1'");
+    private void updateSchema() {
+        Session session = HibernateTestUtil.getSessionFactory().openSession();
+        Transaction tx = session.beginTransaction();
+        SQLQuery query = session.createSQLQuery("UPDATE PERSON SET Lastname ='Way' WHERE personId = '2'");
         query.executeUpdate();
-        session.flush();
+        tx.commit();
+        session.close();
     }
 }

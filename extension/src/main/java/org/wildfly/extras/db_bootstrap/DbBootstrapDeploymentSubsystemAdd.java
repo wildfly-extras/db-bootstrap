@@ -27,13 +27,11 @@ import org.jboss.as.server.deployment.Phase;
 import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.ServiceController;
 
-public class DbBootstrapSubsystemAdd extends AbstractBoottimeAddStepHandler {
-
-    @Override
-    protected void populateModel(ModelNode operation, ModelNode model) throws OperationFailedException {
-        //noting to do as we do not have any attributes in model
-        model.get(DbBootstrapExtension.EXTENSION_TYPE).setEmptyObject();
-    }
+/**
+ * @author Flemming Harms
+ *
+ */
+class DbBootstrapDeploymentSubsystemAdd extends AbstractBoottimeAddStepHandler {
 
     @Override
     protected void performBoottime(OperationContext context, ModelNode operation, ModelNode model, ServiceVerificationHandler verificationHandler, List<ServiceController<?>> newControllers) throws OperationFailedException {
@@ -42,8 +40,7 @@ public class DbBootstrapSubsystemAdd extends AbstractBoottimeAddStepHandler {
         context.addStep(new AbstractDeploymentChainStep() {
                    @Override
                    protected void execute(DeploymentProcessorTarget processorTarget) {
-                       // Initialize the deployer chain
-                       processorTarget.addDeploymentProcessor(DbBootstrapExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_WEB_DEPLOYMENT, new DbBootstrapSubsystemDetectorProcessor());
+                       processorTarget.addDeploymentProcessor(DbBootstrapExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_WEB_DEPLOYMENT, new DbBootstrapDeploymentSubsystemDetectorProcessor());
                    }
                }, OperationContext.Stage.RUNTIME);
     }

@@ -15,33 +15,37 @@
  */
 package org.wildfly.extras.db_bootstrap.matchfilter;
 
+import java.util.List;
+
+import org.jboss.dmr.ModelNode;
+import org.jboss.modules.filter.PathFilter;
+import org.jboss.modules.filter.PathFilters;
 import org.jboss.vfs.VirtualFile;
 import org.jboss.vfs.VisitorAttributes;
 import org.jboss.vfs.util.AbstractVirtualFileFilterWithAttributes;
 
 /**
- * Match all files that contain the filter text and ends with the suffix
+ * Match all files that contain the filtered list
  * @author Flemming Harms
  *
  */
 public class FilenameContainFilter extends AbstractVirtualFileFilterWithAttributes {
-    private final String filter;
-    private final String suffix;
+    private List<ModelNode> filterOnName;
 
-    public FilenameContainFilter(String filter, String suffix) {
-        this(filter, suffix, VisitorAttributes.DEFAULT);
-    }
-
-    public FilenameContainFilter(String filter, String suffix, VisitorAttributes attributes) {
+    public FilenameContainFilter(List<ModelNode> filterOnName, VisitorAttributes attributes) {
         super(attributes);
-        this.filter = filter;
-        this.suffix = suffix;
+        this.filterOnName = filterOnName;
     }
 
     @Override
     public boolean accepts(VirtualFile file) {
-        String name = file.getName();
-        return (name.contains(filter) && name.endsWith(suffix));
+        for (ModelNode filter : filterOnName) {
+            PathFilter matchFilter = PathFilters.match(filter.asString());
+            if (matchFilter.accept(file.getName())) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

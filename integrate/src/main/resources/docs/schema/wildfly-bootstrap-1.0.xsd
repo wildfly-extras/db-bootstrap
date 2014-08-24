@@ -21,6 +21,13 @@
                 before the archive is loaded by the container.
             </xsd:documentation>
         </xsd:annotation>
+        <xs:attribute name="name" use="required" type="xs:string">
+            <xsd:annotation>
+                <xsd:documentation>
+                    A unique name that define the scan element.
+                </xsd:documentation>
+            </xsd:annotation>
+        </xs:attribute>
         <xs:attribute name="filename" use="required" type="xs:string">
             <xsd:annotation>
                 <xsd:documentation>
