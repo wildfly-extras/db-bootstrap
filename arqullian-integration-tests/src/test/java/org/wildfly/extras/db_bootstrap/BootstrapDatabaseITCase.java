@@ -24,6 +24,7 @@ import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
 
 import org.jboss.arquillian.container.test.api.Deployment;
+import org.jboss.arquillian.container.test.api.OperateOnDeployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ArchivePaths;
@@ -32,8 +33,10 @@ import org.jboss.shrinkwrap.api.asset.EmptyAsset;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
+import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.wildfly.extras.db_bootstrap.databasebootstrap.DatabaseBootstrapNoCfgFileTester;
 import org.wildfly.extras.db_bootstrap.databasebootstrap.DatabaseBootstrapTester;
 
 /**
@@ -58,49 +61,54 @@ public class BootstrapDatabaseITCase {
             "    </session-factory>"+
             "</hibernate-configuration>";
 
-    @Deployment
-    public static Archive<?> deploy() throws Exception {
+    @Deployment(order = 1, name = "with-hibernate-cfg")
+    public static Archive<?> deployWithHibernate() throws Exception {
 
-        EnterpriseArchive ear = ShrinkWrap.create(EnterpriseArchive.class, ARCHIVE_NAME + ".ear");
+        WebArchive ear = ShrinkWrap.create(WebArchive.class, ARCHIVE_NAME + ".war");
 
         JavaArchive lib = ShrinkWrap.create(JavaArchive.class, "bootstrap.jar");
         lib.addClasses(DatabaseBootstrapTester.class);
+        addBaseResources(lib);
+        ear.addAsLibraries(lib);
+        return ear;
+    }
+    
+    @Deployment(order = 2, name = "without-hibernate-cfg")
+    public static Archive<?> deployWithOutHibernate() throws Exception {
+
+        WebArchive ear = ShrinkWrap.create(WebArchive.class, ARCHIVE_NAME + "-no-hibernate.war");
+
+        JavaArchive lib = ShrinkWrap.create(JavaArchive.class, "bootstrap-no-hibernate.jar");
+        lib.addClasses(DatabaseBootstrapNoCfgFileTester.class);
+        addBaseResources(lib);
+        ear.addAsLibraries(lib);
+        return ear;
+    }
+
+    private static void addBaseResources(JavaArchive lib) {
         lib.addClasses(BootstrapDatabaseITCase.class);
         lib.addAsManifestResource("META-INF/persistence.xml", "persistence.xml");
         lib.addAsManifestResource(EmptyAsset.INSTANCE, ArchivePaths.create("beans.xml"));
         lib.addAsManifestResource(new StringAsset(hibernate_cfg_xml), "hibernate.cfg.xml");
-        ear.addAsLibraries(lib);
-
-
-        // add application dependency on H2 JDBC driver, so that the Hibernate classloader (same as app classloader)
-        // will see the H2 JDBC driver.
-        // equivalent hack for use of shared Hiberante module, would be to add the H2 dependency directly to the
-        // shared Hibernate module.
-        // also add dependency on org.slf4j
-        ear.addAsManifestResource(new StringAsset(
-                "<jboss-deployment-structure>" +
-                        " <deployment>" +
-                        "  <dependencies>" +
-                        "   <module name=\"com.h2database.h2\"/>" +
-                        "   <module name=\"org.slf4j\"/>" +
-                        "  </dependencies>" +
-                        " </deployment>" +
-                        "</jboss-deployment-structure>"),
-                "jboss-deployment-structure.xml");
-        return ear;
     }
 
     @PersistenceContext
     EntityManager em;
 
     @Test
-    public void testRunBootstrap() throws Exception {
+    @OperateOnDeployment("with-hibernate-cfg")
+    public void testRunBootstrapWithHibernate() throws Exception {
         Query query = em.createNativeQuery("select * from person where PersonId = '1'");
         List<?> resultList = query.getResultList();
         assertEquals(1, resultList.size());
         Object[] result = (Object[]) resultList.get(0);
         assertEquals("John",result[1]);
         assertEquals("Doe",result[2]);
+    }
+    
+    @Test
+    @OperateOnDeployment("without-hibernate-cfg")
+    public void testRunBootstrapWithoutHibernate() throws Exception {
     }
 
 }

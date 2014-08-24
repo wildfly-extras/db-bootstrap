@@ -23,7 +23,6 @@ import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.SubsystemRegistration;
 import org.jboss.as.controller.descriptions.StandardResourceDescriptionResolver;
 import org.jboss.as.controller.parsing.ExtensionParsingContext;
-import org.jboss.as.controller.registry.ManagementResourceRegistration;
 /**
  * @author Frank Vissing
  * @author Flemming Harms
@@ -31,21 +30,16 @@ import org.jboss.as.controller.registry.ManagementResourceRegistration;
 public class DbBootstrapExtension implements Extension {
 
     public static final String SUBSYSTEM_NAME = "db_bootstrap";
-    static final String EXTENSION_TYPE ="extension";
     static final String BOOTSTRAP_DEPLOYMENT = "bootstrap-deployments";
     static final String SCAN = "scan";
     static final String FILENAME_ATTR = "filename";
-    static final String FILTER_ON_NAME_ATTR = "filter-on-name";
-    static final String RESORUCES = "resources";
-    static final String RESOURCE = "resource";
-    static final String FILTER_ATTR = "filter";
     static final String NAME_ATTR = "name";
-    static final String PATH_ATTR = "path";
-    static final String USE_PHYSICAL_CODE_SOURCE_ATTR = "use-physical-code-source";
-    static final String RESOLVER ="config-bootstrap";
+    static final String FILTER_ON_NAME_ATTR = "filter-on-name";
+    static final String RESOLVER ="config-scan";
 
     static final PathElement SUBSYSTEM_PATH = PathElement.pathElement(SUBSYSTEM, SUBSYSTEM_NAME);
-    static final PathElement EXTENSION_PATH = PathElement.pathElement(EXTENSION_TYPE);
+    static final PathElement BOOTSTRAP_DEPLOYMENT_PATH = PathElement.pathElement("config",BOOTSTRAP_DEPLOYMENT);
+    static final PathElement SCAN_PATH = PathElement.pathElement("scan",SCAN);
     private static final String RESOURCE_NAME = DbBootstrapExtension.class.getPackage().getName() + ".LocalDescriptions";
 
     static StandardResourceDescriptionResolver getResolver(final String... keyPrefix) {
@@ -66,8 +60,7 @@ public class DbBootstrapExtension implements Extension {
     @Override
     public void initialize(ExtensionContext context) {
         final SubsystemRegistration subsystem = context.registerSubsystem(SUBSYSTEM_NAME, 1, 0, 0);
-        final ManagementResourceRegistration registration = subsystem.registerSubsystemModel(DbBootstrapRootResource.INSTANCE);
-        registration.registerSubModel(DbBootstrapDetectorResourceDefinition.INSTANCE);
+        subsystem.registerSubsystemModel(DbBootstrapRootResourceDefinition.INSTANCE);
         subsystem.registerXMLElementWriter(DbBootstrapSubsystemParser.INSTANCE);
     }
 

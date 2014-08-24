@@ -358,7 +358,8 @@
         -->
         <subsystem xmlns="urn:jboss:domain:db_bootstrap:1.0">
             <bootstrap-deployments>
-                <scan filename="/content/bootstrap_test.ear" filter-on-name="bootstrap.jar"  />
+                <scan name="bootstrap_test.war" filename="/content/bootstrap_test.war" filter-on-name="bootstrap*.jar"  />
+                <scan name="bootstrap_test-no-hibernate.war" filename="/content/bootstrap_test-no-hibernate.war" filter-on-name="bootstrap*.jar"  />
             </bootstrap-deployments>
         </subsystem>
     </profile>

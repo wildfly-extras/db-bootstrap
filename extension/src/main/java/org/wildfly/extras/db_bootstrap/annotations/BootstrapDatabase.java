@@ -36,9 +36,10 @@ public @interface BootstrapDatabase {
      * <br><br>
      * This method will first search the parent class loader for the resource;
      * if the parent is null the path of the class loader built-in to the virtual machine is searched.
-     * That failing, this method will invoke findResource(String) to find the resource
+     * That failing, this method will invoke findResource(String) to find the resource.
+     * This is optional and if not specified no Session will be created
      */
-    String hibernateCfg();
+    String hibernateCfg() default "";
     /**
      * The priority it should organized after. Higher priorities will be executed first
      */
