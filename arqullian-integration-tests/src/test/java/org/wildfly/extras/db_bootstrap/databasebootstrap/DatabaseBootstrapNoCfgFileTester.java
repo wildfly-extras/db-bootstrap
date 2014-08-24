@@ -13,21 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.wildfly.extras.db_bootstrap;
+package org.wildfly.extras.db_bootstrap.databasebootstrap;
 
-import org.jboss.as.server.deployment.DeploymentPhaseContext;
-import org.jboss.as.server.deployment.DeploymentUnit;
-import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
-import org.jboss.as.server.deployment.DeploymentUnitProcessor;
+import org.wildfly.extras.db_bootstrap.annotations.BootstrapDatabase;
+import org.wildfly.extras.db_bootstrap.annotations.BootstrapSchema;
+import org.wildfly.extras.db_bootstrap.annotations.UpdateSchema;
+/**
+ * @author Flemming Harms
+ */
+@BootstrapDatabase(priority = 99)
+public class DatabaseBootstrapNoCfgFileTester {
 
-public class DbBootstrapSubsystemDetectorProcessor implements DeploymentUnitProcessor {
-
-    @Override
-    public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
+    @BootstrapSchema
+    private void createSchema() {
     }
 
-    @Override
-    public void undeploy(DeploymentUnit context) {
-
+    @UpdateSchema
+    private void updateSchema() {
     }
 }
