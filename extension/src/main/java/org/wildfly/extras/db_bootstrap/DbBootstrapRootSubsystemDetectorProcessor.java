@@ -17,17 +17,19 @@ package org.wildfly.extras.db_bootstrap;
 
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
 import org.jboss.as.server.deployment.DeploymentUnit;
-import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 
-public class DbBootstrapSubsystemDetectorProcessor implements DeploymentUnitProcessor {
+/**
+ * @author Flemming Harms
+ *
+ */
+class DbBootstrapRootSubsystemDetectorProcessor implements DeploymentUnitProcessor {
 
     @Override
-    public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
+    public void deploy(DeploymentPhaseContext phaseContext) {
     }
 
     @Override
     public void undeploy(DeploymentUnit context) {
-
     }
 }

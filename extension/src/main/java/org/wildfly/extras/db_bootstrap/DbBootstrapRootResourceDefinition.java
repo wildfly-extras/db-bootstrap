@@ -15,18 +15,27 @@
  */
 package org.wildfly.extras.db_bootstrap;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+
+import org.jboss.as.controller.AttributeDefinition;
+import org.jboss.as.controller.PersistentResourceDefinition;
 import org.jboss.as.controller.ReloadRequiredRemoveStepHandler;
-import org.jboss.as.controller.SimpleResourceDefinition;
 import org.jboss.as.controller.operations.common.GenericSubsystemDescribeHandler;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 
-public class DbBootstrapRootResource extends SimpleResourceDefinition {
-    static final DbBootstrapRootResource INSTANCE = new DbBootstrapRootResource();
+/**
+ * @author Flemming Harms
+ *
+ */
+class DbBootstrapRootResourceDefinition extends PersistentResourceDefinition {
+    static final DbBootstrapRootResourceDefinition INSTANCE = new DbBootstrapRootResourceDefinition();
 
-    private DbBootstrapRootResource() {
+    private DbBootstrapRootResourceDefinition() {
         super(DbBootstrapExtension.SUBSYSTEM_PATH,
                 DbBootstrapExtension.getResolver(),
-                new DbBootstrapSubsystemAdd(),
+                new DbBootstrapRootSubsystemAdd(),
                 ReloadRequiredRemoveStepHandler.INSTANCE);
     }
 
@@ -34,5 +43,15 @@ public class DbBootstrapRootResource extends SimpleResourceDefinition {
     public void registerOperations(ManagementResourceRegistration resourceRegistration) {
         super.registerOperations(resourceRegistration);
         resourceRegistration.registerOperationHandler(GenericSubsystemDescribeHandler.DEFINITION, GenericSubsystemDescribeHandler.INSTANCE, false);
+    }
+
+    @Override
+    public Collection<AttributeDefinition> getAttributes() {
+        return Collections.emptySet();
+    }
+
+    @Override
+    protected List<? extends PersistentResourceDefinition> getChildren() {
+        return Collections.singletonList(DbBootstrapDeploymentResourceDefinition.INSTANCE);
     }
 }

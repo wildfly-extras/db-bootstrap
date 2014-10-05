@@ -43,6 +43,7 @@ import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 import org.jboss.as.server.deployment.module.ResourceRoot;
+import org.jboss.dmr.ModelNode;
 import org.jboss.modules.ModuleLoadException;
 import org.jboss.vfs.VFSUtils;
 import org.jboss.vfs.VirtualFile;
@@ -65,7 +66,7 @@ import org.wildfly.extras.db_bootstrap.matchfilter.FilenameContainFilter;
  * @author Flemming Harms <flemming.harms@gmail.com>
  * @author Nicky Moelholm <moelholm@gmail.com>
  */
-public final class DbBootstrapDetectorProcessor implements DeploymentUnitProcessor {
+class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
 
     /**
      * Defines the prefix of the system property names that can be used to set and/or override the hibernate properties defined in user-space hibernate configuration files
@@ -80,10 +81,10 @@ public final class DbBootstrapDetectorProcessor implements DeploymentUnitProcess
     private final FilenameContainFilter filterOnJarFilename;
     private final Set<String> parsedArchived;
 
-    public DbBootstrapDetectorProcessor(String filename, String filterOnJarFilename) {
+    public DbBootstrapScanDetectorProcessor(final String filename, final List<ModelNode> filterOnName) {
         this.filename = filename;
-        if (!filterOnJarFilename.equals("undefined")) {
-            this.filterOnJarFilename = new FilenameContainFilter(filterOnJarFilename, ".jar", VisitorAttributes.RECURSE);
+        if (!filterOnName.isEmpty()) {
+            this.filterOnJarFilename = new FilenameContainFilter(filterOnName, VisitorAttributes.RECURSE);
         } else {
             this.filterOnJarFilename = null;
         }
@@ -212,7 +213,7 @@ public final class DbBootstrapDetectorProcessor implements DeploymentUnitProcess
                 if (sessionParameter) {
                     invokeWithSession(bootstrapDatabaseAnnotation, classLoader, method, bootstrapClass);
                 } else {
-                    method.invoke(bootstrapClass, annotatedClazz);
+                    method.invoke(bootstrapClass);
                 }
             }
         }
