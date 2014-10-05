@@ -26,8 +26,8 @@ To build
 For running Arquillian integration test
 > mvn clean verify -P arquillian-wildfly-managed 
 
-To install to existing WildFly run
----------------------------------
+To automatic install to existing WildFly run
+--------------------------------------------
 > mvn clean install -Pupdate-as -Dwildfly.home=/path/to/as8
 
 The -Dwildfly.home is not necessary if $JBOSS_HOME is already pointing at your WildFly installation.
@@ -35,6 +35,16 @@ The -Dwildfly.home is not necessary if $JBOSS_HOME is already pointing at your W
 after install is done you can run WildFly with SDD subsystem by running
 
 > ./standalone.sh -c standalone-db-bootstrap.xml
+
+To manual install to existing WildFly run
+--------------------------------------------
+To manual install the db_bootstrap follow the instructions
+
+- Create a new directory under wildfly home "modules/org/wildfly/extras/db_bootstrap/main/"
+- Download the latest [module.xml](https://github.com/wildfly-extras/db-bootstrap/tree/master/integrate/src/main/resources/modules/org/wildfly/extras/db_bootstrap/main) from github and place it under "modules/org/wildfly/extras/db_bootstrap/main/"
+- Download the latest [releases](https://github.com/wildfly-extras/db-bootstrap/releases) and place it under "modules/org/wildfly/extras/db_bootstrap/main/". 
+- Add this `<extension module="org.wildfly.extension.db_bootstrap"/>` under the `<extensions>` block to your server configuration standalone.xml / domain.xml to enable the db_bootstrap module
+- Next step is to configure the module
 
 Configure the module
 -------------------
@@ -49,6 +59,17 @@ to limit the list of JAR files that is scanned for the @BootstrapDatabase annota
       </bootstrap-deployments>
     </subsystem>
     
+
+Add db_bootstrap as dependency to your project
+----------------------------------------------
+To use db_bootstrap in your code you will need to add a Maven dependency to your project. Insert the following in your pom.xml file
+
+    <dependency>
+        <groupId>org.wildfly.extras.db_bootstrap</groupId>
+        <artifactId>db-bootstrap</artifactId>
+        <version>1.0.5</version>
+    </dependency>
+
 User guide
 -------------------
 For bootstrapping a database create a class with @BootstrapDatabase pointing to the hibernate cfg, that should be used for creating
