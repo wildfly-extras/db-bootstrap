@@ -65,6 +65,33 @@
 		<developerConnection>scm:https://github.com/wildfly-extras/db-bootstrap.git</developerConnection>
 		<url>https://github.com/wildfly-extras/db-bootstrap.git</url>
 	</scm>
+	
+	<developers>
+        <developer>
+            <id>fharms</id>
+            <name>Flemming Harms</name>
+            <organization>Umbrew</organization>
+        </developer>
+        <developer>
+            <id>nickymoelholm</id>
+            <name>Nicky Moelholm</name>
+            <organization>Umbrew</organization>
+        </developer>
+        <developer>
+            <id>lunarfs</id>
+            <name>Frank Vissing</name>
+            <organization>Umbrew</organization>
+        </developer>
+    </developers>
+    
+     <!-- do not forget to add your jboss.org account user credentials to settings.xml file in Maven configuration directory ideally encrypted. See http://maven.apache.org/guides/mini/guide-encryption.html  -->
+    <distributionManagement>
+        <repository>
+            <id>jboss.staging</id>
+            <url>https://repository.jboss.org/nexus/service/local/staging/deploy/maven2</url>
+        </repository>
+    </distributionManagement>
+    
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
@@ -325,6 +352,32 @@
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+			
 		</plugins>
 	</build>
 	<profiles>
