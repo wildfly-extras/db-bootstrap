@@ -32,7 +32,7 @@
             <xsd:annotation>
                 <xsd:documentation>
                     The name of the archive to search for BootstrapDatabase annotations.
-                    eg. /content/my_archive.ear
+                    e.g. my_archive.ear
                 </xsd:documentation>
             </xsd:annotation>
         </xs:attribute>

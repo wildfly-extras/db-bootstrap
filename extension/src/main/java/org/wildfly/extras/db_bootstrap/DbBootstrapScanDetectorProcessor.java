@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.hibernate.Session;
@@ -55,26 +56,26 @@ import org.wildfly.extras.db_bootstrap.annotations.UpdateSchema;
 import org.wildfly.extras.db_bootstrap.matchfilter.FilenameContainFilter;
 
 /**
- * Reacts on the deployment process on the specified archives in the configuration. It scan all JAR archives for
- * {@link BootstrapDatabase} annotation to locate database bootstrapping classes. <br>
+ * Reacts on the deployment process on the specified archives in the configuration. It scan all JAR archives for {@link BootstrapDatabase} annotation to locate database
+ * bootstrapping classes. <br>
  * <br>
  *
- * By default it all children in the archive is added to a new class loader and passed to the Hibernate
- * {@link org.hibernate.boot.registry.internal.BootstrapServiceRegistryImpl} for creating a new {@link SessionFactory}
+ * By default it all children in the archive is added to a new class loader and passed to the Hibernate {@link org.hibernate.boot.registry.internal.BootstrapServiceRegistryImpl}
+ * for creating a new {@link SessionFactory}
  *
- * @author Frank Vissing <frank.vissing@schneider-electric.com>
- * @author Flemming Harms <flemming.harms@gmail.com>
- * @author Nicky Moelholm <moelholm@gmail.com>
+ * @author Frank Vissing (frank.vissing@schneider-electric.com)
+ * @author Flemming Harms (flemming.harms@gmail.com)
+ * @author Nicky Moelholm (moelholm@gmail.com)
+ * @author Rasmus Lund
  */
 class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
 
     /**
      * Defines the prefix of the system property names that can be used to set and/or override the hibernate properties defined in user-space hibernate configuration files
-     * (referenced by the {@link BootstrapDatabase} annotation).
-     * <br><br>
-     * For example: Setting the system property <code>dbbootstrap.foohibcfg.connection.url</code> will override any
-     * existing hibernate configuration property <code>connection.url</code> in the hibernate configuration xml file referenced by the {@link BootstrapDatabase} annotation
-     * with the name <code>foohibcfg</code>.
+     * (referenced by the {@link BootstrapDatabase} annotation). <br>
+     * <br>
+     * For example: Setting the system property <code>dbbootstrap.foohibcfg.connection.url</code> will override any existing hibernate configuration property
+     * <code>connection.url</code> in the hibernate configuration xml file referenced by the {@link BootstrapDatabase} annotation with the name <code>foohibcfg</code>.
      */
     public static final String DBBOOTSTRAP_SYSTEM_PROPERTY_PREFIX = "dbbootstrap";
     private final String filename;
@@ -94,15 +95,17 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
 
     @Override
     public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
+
         final DeploymentUnit deploymentUnit = phaseContext.getDeploymentUnit();
         final ResourceRoot deploymentRoot = deploymentUnit.getAttachment(Attachments.DEPLOYMENT_ROOT);
         VirtualFile root = deploymentRoot.getRoot();
 
-        if (parsedArchived.contains(root.getParent().getPathName())) {
-            return;
+        boolean currentModuleIsSubmoduleInAnotherModule = deploymentUnit.getParent() != null;
+        if (currentModuleIsSubmoduleInAnotherModule) {
+            return; // As the top level module gets scanned, we don't want to scan its contained modules (would lead to double scanning)
         }
 
-        if (root.getPathName().contains(filename)) {
+        if (deploymentUnit.getName().equals(filename)) {
             parsedArchived.add(root.getPathName());
             DbBootstrapLogger.ROOT_LOGGER.tracef("match on %s", root.getPathName());
             try {
@@ -146,8 +149,8 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
     }
 
     /**
-     * Process a sorted list of bootstrap classes, by calling method's annotated with {@link BootstrapSchema} first and
-     * second {@link UpdateSchema}.
+     * Process a sorted list of bootstrap classes, by calling method's annotated with {@link BootstrapSchema} first and second {@link UpdateSchema}.
+     *
      * @param bootstrapMap
      * @param classLoader
      * @throws Exception
@@ -182,8 +185,7 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
     }
 
     /**
-     * Execute the method annotated with specified class. If the annotated method has parameter signature
-     * {@link Session} it will create a session a pass it as parameter.
+     * Execute the method annotated with specified class. If the annotated method has parameter signature {@link Session} it will create a session a pass it as parameter.
      *
      * @param annotatedClazz
      *            - The bootstrap class to execute the method on
@@ -195,7 +197,8 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
      *            - The class loader
      * @throws Exception
      */
-    private <T extends Annotation> void executeMethod(final Class<?> annotatedClazz, final BootstrapDatabase bootstrapDatabaseAnnotation, final Class<T> annotation, final ClassLoader classLoader)
+    private <T extends Annotation> void executeMethod(final Class<?> annotatedClazz, final BootstrapDatabase bootstrapDatabaseAnnotation, final Class<T> annotation,
+            final ClassLoader classLoader)
             throws Exception {
         Method[] methods = annotatedClazz.getDeclaredMethods();
         for (Method method : methods) {
@@ -220,12 +223,16 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
     }
 
     /**
-     * Wrap transaction around the invoke with the {@link Session}, if any exception throw it roll back the tx
-     * otherwise commit the tx;
-     * @param bootstrapDatabaseAnnotation - the boostrap configuration source
-     * @param classLoader - The classloader to load the hibernate resources from
-     * @param method - the method to invoke
-     * @param bootstrapClass - the class to invoke the method on
+     * Wrap transaction around the invoke with the {@link Session}, if any exception throw it roll back the tx otherwise commit the tx;
+     *
+     * @param bootstrapDatabaseAnnotation
+     *            - the boostrap configuration source
+     * @param classLoader
+     *            - The classloader to load the hibernate resources from
+     * @param method
+     *            - the method to invoke
+     * @param bootstrapClass
+     *            - the class to invoke the method on
      * @throws Exception
      */
     private void invokeWithSession(final BootstrapDatabase bootstrapDatabaseAnnotation, final ClassLoader classLoader, Method method, Object bootstrapClass) throws Exception {
@@ -234,8 +241,8 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
         try {
             method.invoke(bootstrapClass, session);
         } catch (Exception e) {
-           DbBootstrapLogger.ROOT_LOGGER.error(String.format("Unable to invoke method %s ",method.getName()),e);
-           tx.rollback();
+            DbBootstrapLogger.ROOT_LOGGER.error(String.format("Unable to invoke method %s ", method.getName()), e);
+            tx.rollback();
         } finally {
             if (tx.isActive()) {
                 tx.commit();
@@ -272,13 +279,16 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
      * <br>
      * Any existing hibernate properties with the same name (<code>[hibernate-property-name-here]</code> in above example) will be replaced by the matching system property. <br>
      * <br>
-     * @param bootstrapDatabaseAnnotation - bootstrap configuration source
-     * @param configuration - the runtime hibernate configuration object
+     *
+     * @param bootstrapDatabaseAnnotation
+     *            - bootstrap configuration source
+     * @param configuration
+     *            - the runtime hibernate configuration object
      */
     private void configureSettingsFromSystemProperties(BootstrapDatabase bootstrapDatabaseAnnotation, Configuration configuration) {
         String propertyPrefix = String.format("%s.%s", DBBOOTSTRAP_SYSTEM_PROPERTY_PREFIX, bootstrapDatabaseAnnotation.name());
         DbBootstrapLogger.ROOT_LOGGER.tracef("Searching for system properties with prefix %s to set and/or override hibernate configuration properties", propertyPrefix);
-        for (Entry<Object, Object> entrySet : ((Set<Entry<Object, Object>>) System.getProperties().entrySet())) {
+        for (Entry<Object, Object> entrySet : (System.getProperties().entrySet())) {
             if (entrySet.getKey().toString().startsWith(propertyPrefix)) {
                 String hibernatePropertyName = entrySet.getKey().toString().replace(String.format("%s.", propertyPrefix), "");
                 String oldHibernatePropertyValue = (configuration.getProperty(hibernatePropertyName) == null) ? " (New property)" : String.format(
@@ -324,12 +334,24 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
             entries = deploymentRoot.getChildrenRecursively();
         }
 
-        int idx = 0;
-        URL[] urls = new URL[entries.size()];
+        TreeSet<URL> uniqueArchiveUrls = new TreeSet<URL>(new Comparator<URL>() {
+            @Override
+            public int compare(URL o1, URL o2) {
+                return o1.toString().compareTo(o2.toString());
+            }
+        });
+
         for (VirtualFile virtualFile : entries) {
-            urls[idx++] = VFSUtils.getRootURL(virtualFile);
+            try {
+                URL url = VFSUtils.getRootURL(virtualFile);
+                uniqueArchiveUrls.add(url);
+
+            } catch (NullPointerException ignore) {
+                // Happens if 'filename' refers to a dir or file, which is not an archive or which is not inside an archive.
+                // These can safely be ignored.
+            }
         }
-        return urls;
+        return uniqueArchiveUrls.toArray(new URL[uniqueArchiveUrls.size()]);
     }
 
     @Override
@@ -350,7 +372,7 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
      * @throws ModuleLoadException
      */
     private ClassLoader addDynamicResources(final URL[] urls, final DeploymentUnit deploymentUnit) throws DeploymentUnitProcessingException, ModuleLoadException {
-        return URLClassLoader.newInstance(urls,getClass().getClassLoader());
+        return URLClassLoader.newInstance(urls, getClass().getClassLoader());
     }
 
 }

@@ -15,6 +15,7 @@
  */
 package org.wildfly.extras.db_bootstrap;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -27,12 +28,14 @@ import org.jboss.as.server.DeploymentProcessorTarget;
 import org.jboss.as.server.deployment.Phase;
 import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.ServiceController;
+
 /**
  * @author Frank Vissing
  * @author Flemming Harms
+ * @author Rasmus Lund
  */
 class DbBootstrapScanDetectorAdd extends AbstractBoottimeAddStepHandler {
-    private AtomicInteger priority =new AtomicInteger(0);
+    private AtomicInteger priority = new AtomicInteger(0);
 
     @Override
     protected void populateModel(ModelNode operation, ModelNode model) throws OperationFailedException {
@@ -41,20 +44,24 @@ class DbBootstrapScanDetectorAdd extends AbstractBoottimeAddStepHandler {
     }
 
     @Override
-    protected void performBoottime(OperationContext context, ModelNode operation, ModelNode model, ServiceVerificationHandler verificationHandler, List<ServiceController<?>> newControllers) throws OperationFailedException {
+    protected void performBoottime(OperationContext context, ModelNode operation, ModelNode model, ServiceVerificationHandler verificationHandler,
+            List<ServiceController<?>> newControllers) throws OperationFailedException {
         final String filename = model.get(DbBootstrapExtension.FILENAME_ATTR).asString();
-        final List<ModelNode> filterOnName =  model.get(DbBootstrapExtension.FILTER_ON_NAME_ATTR).asList();
-
+        ModelNode filterOnNameAttributeModelNode = model.get(DbBootstrapExtension.FILTER_ON_NAME_ATTR);
+        final List<ModelNode> filterOnName = new LinkedList<ModelNode>();
+        if (filterOnNameAttributeModelNode.isDefined()) {
+            filterOnName.addAll(filterOnNameAttributeModelNode.asList());
+        }
         context.addStep(new AbstractDeploymentChainStep() {
             @Override
             protected void execute(DeploymentProcessorTarget processorTarget) {
-                DbBootstrapLogger.ROOT_LOGGER.tracef("%s:'%s' %s:'%s'",DbBootstrapExtension.FILENAME_ATTR,filename,DbBootstrapExtension.FILTER_ON_NAME_ATTR,filterOnName);
+                DbBootstrapLogger.ROOT_LOGGER.tracef("%s:'%s' %s:'%s'", DbBootstrapExtension.FILENAME_ATTR, filename, DbBootstrapExtension.FILTER_ON_NAME_ATTR, filterOnName);
                 try {
-                    processorTarget.addDeploymentProcessor(DbBootstrapExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_WEB_DEPLOYMENT+priority.getAndIncrement(),new DbBootstrapScanDetectorProcessor(filename,filterOnName));
+                    processorTarget.addDeploymentProcessor(DbBootstrapExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_WEB_DEPLOYMENT + priority.getAndIncrement(),
+                            new DbBootstrapScanDetectorProcessor(filename, filterOnName));
                 } catch (Exception e) {
-                    DbBootstrapLogger.ROOT_LOGGER.error("Error in instanciating DbBootstraper add handler", e);
+                    DbBootstrapLogger.ROOT_LOGGER.error("Error when initializing DbBootstraper add handler", e);
                 }
-
 
             }
         }, OperationContext.Stage.RUNTIME);

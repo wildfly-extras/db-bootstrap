@@ -25,7 +25,7 @@ import java.lang.annotation.Target;
  * Specifies that it's an bootstrapping class. This annotation is applied to the class.
  * This co-exists with the {@link BootstrapDatabase} and {@link UpdateSchema} annotation.
  * @author Flemming Harms
- * @author Nicky Moelholm <moelholm@gmail.com>
+ * @author Nicky Moelholm (moelholm@gmail.com)
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)

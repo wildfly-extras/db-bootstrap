@@ -23,6 +23,7 @@ import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.SubsystemRegistration;
 import org.jboss.as.controller.descriptions.StandardResourceDescriptionResolver;
 import org.jboss.as.controller.parsing.ExtensionParsingContext;
+
 /**
  * @author Frank Vissing
  * @author Flemming Harms
@@ -35,7 +36,7 @@ public class DbBootstrapExtension implements Extension {
     static final String FILENAME_ATTR = "filename";
     static final String NAME_ATTR = "name";
     static final String FILTER_ON_NAME_ATTR = "filter-on-name";
-    static final String RESOLVER ="config-scan";
+    static final String RESOLVER = "config-scan";
     static final String PRIORITY_ATTR = "priority";
 
     static final PathElement SUBSYSTEM_PATH = PathElement.pathElement(SUBSYSTEM, SUBSYSTEM_NAME);

@@ -26,7 +26,7 @@
 	</parent>
 	<groupId>org.wildfly.extras.db_bootstrap</groupId>
 	<artifactId>db-bootstrap-subsystem-parent</artifactId>
-	<version>1.0.5</version>
+	<version>1.0.6</version>
 	<packaging>pom</packaging>
 	<name>DB_BOOTSTRAP</name>
 	<description>Database bootstrap deployment detector subsystem</description>
@@ -54,8 +54,6 @@
 		<version.arquillian>1.1.2.Final</version.arquillian>
 		<surefire.system.args>-da ${surefire.jpda.args}</surefire.system.args>
 		<surefire.jpda.args />
-		<version.arquillian_core>1.1.5.Final</version.arquillian_core>
-
 		<wildfly.home>${project.root}/target/wildfly-${version.wildfly}</wildfly.home>
 		<jboss.server.config.file.name>standalone-db-bootstrap.xml</jboss.server.config.file.name>
 	</properties>
@@ -336,6 +334,8 @@
 						<email>Flemming.Harms@gmail.com</email>
 					</properties>
 					<excludes>
+						<exclude>**/LocalDescriptions.properties</exclude>
+						<exclude>**/db_bootstrap-1.0.xml</exclude>
 						<exclude>**/README</exclude>
 						<exclude>**/LICENSE</exclude>
 						<exclude>src/test/resources/**</exclude>
