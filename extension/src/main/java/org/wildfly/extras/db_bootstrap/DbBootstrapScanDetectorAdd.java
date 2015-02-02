@@ -35,35 +35,59 @@ import org.jboss.msc.service.ServiceController;
  * @author Rasmus Lund
  */
 class DbBootstrapScanDetectorAdd extends AbstractBoottimeAddStepHandler {
-    private AtomicInteger priority = new AtomicInteger(0);
+
+    private final AtomicInteger priorityDelta = new AtomicInteger(0);
 
     @Override
     protected void populateModel(ModelNode operation, ModelNode model) throws OperationFailedException {
+
         DbBootstrapScanDetectorResourceDefinition.FILENAME.validateAndSet(operation, model);
         DbBootstrapScanDetectorResourceDefinition.FILTER_ON_NAME.validateAndSet(operation, model);
     }
 
     @Override
-    protected void performBoottime(OperationContext context, ModelNode operation, ModelNode model, ServiceVerificationHandler verificationHandler,
-            List<ServiceController<?>> newControllers) throws OperationFailedException {
-        final String filename = model.get(DbBootstrapExtension.FILENAME_ATTR).asString();
-        ModelNode filterOnNameAttributeModelNode = model.get(DbBootstrapExtension.FILTER_ON_NAME_ATTR);
-        final List<ModelNode> filterOnName = new LinkedList<ModelNode>();
-        if (filterOnNameAttributeModelNode.isDefined()) {
-            filterOnName.addAll(filterOnNameAttributeModelNode.asList());
-        }
-        context.addStep(new AbstractDeploymentChainStep() {
-            @Override
-            protected void execute(DeploymentProcessorTarget processorTarget) {
-                DbBootstrapLogger.ROOT_LOGGER.tracef("%s:'%s' %s:'%s'", DbBootstrapExtension.FILENAME_ATTR, filename, DbBootstrapExtension.FILTER_ON_NAME_ATTR, filterOnName);
-                try {
-                    processorTarget.addDeploymentProcessor(DbBootstrapExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_WEB_DEPLOYMENT + priority.getAndIncrement(),
-                            new DbBootstrapScanDetectorProcessor(filename, filterOnName));
-                } catch (Exception e) {
-                    DbBootstrapLogger.ROOT_LOGGER.error("Error when initializing DbBootstraper add handler", e);
-                }
+    protected void performBoottime(OperationContext context, ModelNode operation, ModelNode model,
+            ServiceVerificationHandler verificationHandler, List<ServiceController<?>> newControllers)
+            throws OperationFailedException {
 
+        String filename = model.get(DbBootstrapExtension.FILENAME_ATTR).asString();
+        ModelNode filterOnNameAttributeModelNode = model.get(DbBootstrapExtension.FILTER_ON_NAME_ATTR);
+
+        List<ModelNode> filterOnNames = new LinkedList<ModelNode>();
+        if (filterOnNameAttributeModelNode.isDefined()) {
+            filterOnNames.addAll(filterOnNameAttributeModelNode.asList());
+        }
+
+        context.addStep(new DbBootstrapDeploymentChainStep(filterOnNames, filename), OperationContext.Stage.RUNTIME);
+    }
+
+    private final class DbBootstrapDeploymentChainStep extends AbstractDeploymentChainStep {
+
+
+        private final List<ModelNode> filterOnNames;
+        private final String filename;
+
+        DbBootstrapDeploymentChainStep(List<ModelNode> filterOnNames, String filename) {
+            this.filterOnNames = filterOnNames;
+            this.filename = filename;
+        }
+
+        @Override
+        protected void execute(DeploymentProcessorTarget processorTarget) {
+
+            DbBootstrapLogger.ROOT_LOGGER.tracef("%s:'%s' %s:'%s'", DbBootstrapExtension.FILENAME_ATTR, filename,
+                    DbBootstrapExtension.FILTER_ON_NAME_ATTR, filterOnNames);
+
+            try {
+                String subsystemName = DbBootstrapExtension.SUBSYSTEM_NAME;
+                int priority = Phase.PARSE_WEB_DEPLOYMENT + priorityDelta.getAndIncrement();
+                DbBootstrapScanDetectorProcessor processor;
+                processor = new DbBootstrapScanDetectorProcessor(filename, filterOnNames);
+                processorTarget.addDeploymentProcessor(subsystemName, Phase.PARSE, priority, processor);
+
+            } catch (Exception e) {
+                DbBootstrapLogger.ROOT_LOGGER.error("Error when executing db-bootstrap deployment chain step", e);
             }
-        }, OperationContext.Stage.RUNTIME);
+        }
     }
 }

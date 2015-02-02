@@ -27,6 +27,7 @@ import org.jboss.as.controller.parsing.ExtensionParsingContext;
 /**
  * @author Frank Vissing
  * @author Flemming Harms
+ * @author Rasmus Lund
  */
 public class DbBootstrapExtension implements Extension {
 

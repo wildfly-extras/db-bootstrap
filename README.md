@@ -50,15 +50,7 @@ To manual install the db_bootstrap follow the instructions
 
 Configure the module
 --------------------
-For bootstrapping under the deployment use the following example of a configuration below and add it to the your jboss configuration standalone.xml or domain.xml.
-
-You can add multiple EAR files you want to scan for `@BootstrapDatabase` annotated classes. For each EAR file, add a separate `<scan>` element.
-
-The `<bootstrap-deployments>` element and the `<scan>` element(s) must contain an attribute `name`, which can contain any name you like (the value is not used for anything by db-bootstrap).
-
-The attribute `filename` is required on `<scan>` element(s), and must contain the name of a deployed archive, that you want to scan.
-
-The attribute `filter-on-name` is optional, and is used to specify which archives you want to scan for classes annotated with `@BootstrapDatabase`. The attribute can use `*` as wildcard, e.g. use `filter-on-name="tada*/*.jar"`. Separate multipled paths by comma (`,`), e.g. `filter-on-name="first.jar, second.jar"`.
+For bootstrapping the deployment use the following example of a configuration, and add it to the your jboss configuration standalone.xml or domain.xml.
 
 	<subsystem xmlns="urn:jboss:domain:db_bootstrap:1.0">
 		<bootstrap-deployments name="myDeployments">
@@ -66,8 +58,14 @@ The attribute `filter-on-name` is optional, and is used to specify which archive
 			<scan name="myScan2" filename="bootstrap_test-no-hibernate.ear" />
 		</bootstrap-deployments>
 	</subsystem>
-    
-    
+
+You can add multiple EAR files you want to scan for `@BootstrapDatabase` annotated classes. For each EAR file, add a separate `<scan>` element.
+
+The `<bootstrap-deployments>` element and the `<scan>` element(s) must contain an attribute `name`, which can contain any name you like (the value is currently not used for anything by db-bootstrap).
+
+The attribute `filename` is required on `<scan>` element(s), and must contain the name of the deployed archive, that you want to scan.
+
+The attribute `filter-on-name` is optional, and is used to specify which archives you want to scan (for classes annotated with `@BootstrapDatabase`). The attribute can use `*` as wildcard, e.g. use `filter-on-name="tada*/*.jar"`. Separate multiple paths by comma (`,`), e.g. `filter-on-name="first.jar, second.jar"`.    
 
 Add db_bootstrap as dependency to your project
 ----------------------------------------------
