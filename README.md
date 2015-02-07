@@ -21,19 +21,20 @@ Build the module
 
 For building the module it's require maven 3.x or later.
 
-To build
+To build, run the following Maven command from the parent project folder:
 > mvn clean install
 
-For running Arquillian integration test
+For running Arquillian integration test, run the following Maven command from the parent project folder:
 > mvn clean verify -P arquillian-wildfly-managed 
 
-To automatic install to existing WildFly run
---------------------------------------------
+To automatic install to existing WildFly
+----------------------------------------
+From the parent project directory run:
 > mvn clean install -Pupdate-as -Dwildfly.home=/path/to/as8
 
 The -Dwildfly.home is not necessary if $JBOSS_HOME is already pointing at your WildFly installation.
 
-after install is done you can run WildFly with SDD subsystem by running
+after install is done you can run WildFly with SDD subsystem by running:
 
 > ./standalone.sh -c standalone-db-bootstrap.xml
 
@@ -44,22 +45,27 @@ To manual install the db_bootstrap follow the instructions
 - Create a new directory under wildfly home "modules/org/wildfly/extras/db_bootstrap/main/"
 - Download the latest [module.xml](https://github.com/wildfly-extras/db-bootstrap/tree/master/integrate/src/main/resources/modules/org/wildfly/extras/db_bootstrap/main) from github and place it under "modules/org/wildfly/extras/db_bootstrap/main/"
 - Download the latest [releases](https://github.com/wildfly-extras/db-bootstrap/releases) and place it under "modules/org/wildfly/extras/db_bootstrap/main/". 
-- Add this `<extension module="org.wildfly.extension.db_bootstrap"/>` under the `<extensions>` block to your server configuration standalone.xml / domain.xml to enable the db_bootstrap module
+- Add this `<extension module="org.wildfly.extras.db_bootstrap"/>` under the `<extensions>` block to your server configuration standalone.xml / domain.xml to enable the db_bootstrap module
 - Next step is to configure the module
 
 Configure the module
--------------------
-For bootstrapping under the deployment use the following example of a configuration below and add it to the your jboss configuration standalone.xml or domain.xml.
-
-Add multiple deployment you want to bootstrap by adding the "<scan file="myarchive.ear"/>, the attribute "filter-on-name" is optional and can be used
-to limit the list of JAR files that is scanned for the @BootstrapDatabase annotation.
+--------------------
+For bootstrapping the deployment use the following example of a configuration, and add it to the your jboss configuration standalone.xml or domain.xml.
 
 	<subsystem xmlns="urn:jboss:domain:db_bootstrap:1.0">
-      <bootstrap-deployments>
-         <scan filename="/content/myarchive.ear" filter-on-name="org.xyz" />
-      </bootstrap-deployments>
-    </subsystem>
-    
+		<bootstrap-deployments name="myDeployments">
+			<scan name="myScan1" filename="bootstrap_test.ear" filter-on-name="bootstrap*.jar" />
+			<scan name="myScan2" filename="bootstrap_test-no-hibernate.ear" />
+		</bootstrap-deployments>
+	</subsystem>
+
+You can add multiple EAR files you want to scan for `@BootstrapDatabase` annotated classes. For each EAR file, add a separate `<scan>` element.
+
+The `<bootstrap-deployments>` element and the `<scan>` element(s) must contain an attribute `name`, which can contain any name you like (the value is currently not used for anything by db-bootstrap).
+
+The attribute `filename` is required on `<scan>` element(s), and must contain the name of the deployed archive, that you want to scan.
+
+The attribute `filter-on-name` is optional, and is used to specify which archives you want to scan (for classes annotated with `@BootstrapDatabase`). The attribute can use `*` as wildcard, e.g. use `filter-on-name="tada*/*.jar"`. Separate multiple paths by comma (`,`), e.g. `filter-on-name="first.jar, second.jar"`.    
 
 Add db_bootstrap as dependency to your project
 ----------------------------------------------
@@ -68,7 +74,8 @@ To use db_bootstrap in your code you will need to add a Maven dependency to your
     <dependency>
         <groupId>org.wildfly.extras.db_bootstrap</groupId>
         <artifactId>db-bootstrap</artifactId>
-        <version>1.0.5</version>
+        <version>1.0.6</version>
+        <scope>provided</scope>
     </dependency>
 
 User guide
@@ -133,3 +140,4 @@ Contributors:
 - Frank Vissing - Creator of db-bootstrap
 - Flemming Harms - Creator of db-bootstrap 
 - Nicky Moelholm - Contributer 
+- Rasmus Lund - Contributer
