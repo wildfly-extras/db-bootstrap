@@ -48,4 +48,12 @@ public class FilenameContainFilter extends AbstractVirtualFileFilterWithAttribut
         return false;
     }
 
+    @Override
+    public String toString() {
+        StringBuilder filterListText = new StringBuilder();
+        for (ModelNode filter : filterOnName) {
+            filterListText.append(String.format("[%s] ",filter.asString()));
+        }
+        return filterListText.toString();
+    }
 }

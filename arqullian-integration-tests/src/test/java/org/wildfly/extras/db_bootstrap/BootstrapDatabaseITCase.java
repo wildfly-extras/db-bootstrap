@@ -17,8 +17,6 @@ package org.wildfly.extras.db_bootstrap;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.List;
-
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.persistence.Query;
@@ -31,13 +29,14 @@ import org.jboss.shrinkwrap.api.ArchivePaths;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.EmptyAsset;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
+import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.wildfly.extras.db_bootstrap.databasebootstrap.DatabaseBootstrapNoCfgFileTester;
 import org.wildfly.extras.db_bootstrap.databasebootstrap.DatabaseBootstrapTester;
-import org.wildfly.extras.db_bootstrap.databasebootstrap.HibernateTestUtil;
+import org.wildfly.extras.db_bootstrap.dbutils.HibernateTestUtil;
 
 /**
  * @author Flemming Harms 
@@ -63,30 +62,35 @@ public class BootstrapDatabaseITCase {
 
     @Deployment(order = 1, name = "with-hibernate-cfg")
     public static Archive<?> deployWithHibernate() throws Exception {
-
-        WebArchive ear = ShrinkWrap.create(WebArchive.class, ARCHIVE_NAME + ".war");
-
+        WebArchive war = ShrinkWrap.create(WebArchive.class, ARCHIVE_NAME + ".war");
         JavaArchive lib = ShrinkWrap.create(JavaArchive.class, "bootstrap.jar");
         lib.addClasses(DatabaseBootstrapTester.class);
         lib.addClasses(HibernateTestUtil.class);
+        addBaseResources(lib);
+        war.addAsLibraries(lib);
+        return war;
+    }
+    
+    @Deployment(order = 2, name = "without-hibernate-cfg")
+    public static Archive<?> deployWithOutHibernate() throws Exception {
+        WebArchive war = ShrinkWrap.create(WebArchive.class, ARCHIVE_NAME + "-no-hibernate.war");
+        JavaArchive lib = ShrinkWrap.create(JavaArchive.class, "bootstrap-no-hibernate.jar");
+        lib.addClasses(DatabaseBootstrapNoCfgFileTester.class);
+        lib.addClasses(HibernateTestUtil.class);
+        addBaseResources(lib);
+        war.addAsLibraries(lib);
+        return war;
+    }
+    
+    @Deployment(order = 3, name = "dummy-exploded")
+    public static Archive<?> deployDummyExploded() throws Exception {
+        EnterpriseArchive ear = ShrinkWrap.create(EnterpriseArchive.class, ARCHIVE_NAME + "-dummy-exploded.ear");
+        JavaArchive lib = ShrinkWrap.create(JavaArchive.class, "bootstrap-dummy.jar");
         addBaseResources(lib);
         ear.addAsLibraries(lib);
         return ear;
     }
     
-    @Deployment(order = 2, name = "without-hibernate-cfg")
-    public static Archive<?> deployWithOutHibernate() throws Exception {
-
-        WebArchive ear = ShrinkWrap.create(WebArchive.class, ARCHIVE_NAME + "-no-hibernate.war");
-
-        JavaArchive lib = ShrinkWrap.create(JavaArchive.class, "bootstrap-no-hibernate.jar");
-        lib.addClasses(DatabaseBootstrapNoCfgFileTester.class);
-        lib.addClasses(HibernateTestUtil.class);
-        addBaseResources(lib);
-        ear.addAsLibraries(lib);
-        return ear;
-    }
-
     private static void addBaseResources(JavaArchive lib) {
         lib.addClasses(BootstrapDatabaseITCase.class);
         lib.addAsManifestResource("META-INF/persistence.xml", "persistence.xml");
@@ -94,29 +98,34 @@ public class BootstrapDatabaseITCase {
         lib.addAsManifestResource(new StringAsset(hibernate_cfg_xml), "hibernate.cfg.xml");
     }
 
-    @PersistenceContext
-    EntityManager em;
+    @PersistenceContext(unitName="test")
+    EntityManager testEm;
 
     @Test
     @OperateOnDeployment("with-hibernate-cfg")
     public void testRunBootstrapWithHibernate() throws Exception {
-        Query query = em.createNativeQuery("select * from person where PersonId = '1'");
-        List<?> resultList = query.getResultList();
-        assertEquals(1, resultList.size());
-        Object[] result = (Object[]) resultList.get(0);
+        Query query = testEm.createNativeQuery("select * from person where PersonId = '1'");
+        Object[] result = (Object[]) query.getSingleResult();
         assertEquals("John",result[1]);
-        assertEquals("Doe",result[2]);
+        assertEquals("555-1234",result[3]);
     }
     
     @Test
     @OperateOnDeployment("without-hibernate-cfg")
     public void testRunBootstrapWithoutHibernate() throws Exception {
-        Query query = em.createNativeQuery("select * from person where PersonId = '2'");
-        List<?> resultList = query.getResultList();
-        assertEquals(1, resultList.size());
-        Object[] result = (Object[]) resultList.get(0);
+        Query query = testEm.createNativeQuery("select * from person where PersonId = '2'");
+        Object[] result = (Object[]) query.getSingleResult();
         assertEquals("Jane",result[1]);
-        assertEquals("Way",result[2]);
+        assertEquals("Way",result[4]);
+    }
+    
+    @Test
+    @OperateOnDeployment("dummy-exploded")
+    public void testRunBootstrapWithExplodedEARfile() throws Exception {
+        Query query = testEm.createNativeQuery("select * from person where PersonId = '3'");
+        Object[] result = (Object[]) query.getSingleResult();
+        assertEquals("Superman",result[1]);
+        assertEquals("Earth",result[2]);
     }
 
 }

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.wildfly.extras.db_bootstrap.databasebootstrap;
+package org.wildfly.extras.db_bootstrap.dbutils;
 
 import java.net.URL;
 
@@ -42,14 +42,19 @@ public class HibernateTestUtil {
         }
         return sessionFactory;
     }
-    
+
     public static void createTestSchema(Session session) {
-        SQLQuery query = session.createSQLQuery("create table person (PersonId int, Firstname varchar(255))");
+        SQLQuery query = session.createSQLQuery("create table IF NOT EXISTS person (PersonId int, Firstname varchar(255))");
         query.executeUpdate();
     }
-    
-    public static void alterTestSchema(Session session) {
-        SQLQuery query = session.createSQLQuery("ALTER TABLE person ADD Lastname varchar(255)");
+
+    public static void dropTestSchema(Session session) {
+        SQLQuery query = session.createSQLQuery("drop table IF EXISTS person;");
+        query.executeUpdate();
+    }
+
+    public static void alterTestSchema(Session session, String column) {
+        SQLQuery query = session.createSQLQuery(String.format("ALTER TABLE person ADD IF NOT EXISTS %s varchar(255)", column));
         query.executeUpdate();
     }
 }

@@ -400,9 +400,13 @@
 		<profile>
 			<id>arquillian-wildfly-managed</id>
 			<modules>
+				<module>test-utils</module>
+				<module>arqullian-integration-exploded-tests</module>	
+				<module>test-ear</module>		
 				<module>extension</module>
 				<module>integrate</module>
 				<module>arqullian-integration-tests</module>
+								
 			</modules>
 		</profile>
 		<profile>
@@ -411,8 +415,11 @@
 				<activeByDefault>true</activeByDefault>
 			</activation>
 			<modules>
+				<module>test-utils</module>
+				<module>arqullian-integration-exploded-tests</module>
+				<module>test-ear</module>
 				<module>extension</module>
-				<module>integrate</module>
+				<module>integrate</module>							
 			</modules>
 		</profile>
 	</profiles>
