@@ -114,7 +114,6 @@
 				<scope>test</scope>
 				<version>${version.wildfly}</version>
 			</dependency>
-
 			<dependency>
 				<groupId>org.wildfly</groupId>
 				<artifactId>wildfly-controller</artifactId>

@@ -17,7 +17,6 @@ package org.wildfly.extras.db_bootstrap.matchfilter;
 
 import java.util.List;
 
-import org.jboss.dmr.ModelNode;
 import org.jboss.modules.filter.PathFilter;
 import org.jboss.modules.filter.PathFilters;
 import org.jboss.vfs.VirtualFile;
@@ -30,18 +29,18 @@ import org.jboss.vfs.util.AbstractVirtualFileFilterWithAttributes;
  *
  */
 public class FilenameContainFilter extends AbstractVirtualFileFilterWithAttributes {
-    private List<ModelNode> filterOnName;
+    private List<String> filterOnName;
 
-    public FilenameContainFilter(List<ModelNode> filterOnName, VisitorAttributes attributes) {
+    public FilenameContainFilter(List<String> filterOnName, VisitorAttributes attributes) {
         super(attributes);
         this.filterOnName = filterOnName;
     }
 
     @Override
     public boolean accepts(VirtualFile file) {
-        for (ModelNode filter : filterOnName) {
-            PathFilter matchFilter = PathFilters.match(filter.asString());
-            if (matchFilter.accept(file.getName())) {
+        for (String filter : filterOnName) {
+            PathFilter matchFilter = PathFilters.match(filter);
+            if (matchFilter.accept(file.getPathName())) {
                 return true;
             }
         }
@@ -51,8 +50,8 @@ public class FilenameContainFilter extends AbstractVirtualFileFilterWithAttribut
     @Override
     public String toString() {
         StringBuilder filterListText = new StringBuilder();
-        for (ModelNode filter : filterOnName) {
-            filterListText.append(String.format("[%s] ",filter.asString()));
+        for (String filter : filterOnName) {
+            filterListText.append(String.format("[%s] ",filter));
         }
         return filterListText.toString();
     }
