@@ -91,7 +91,7 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
             this.filterOnJarFilename = null;
         }
         this.parsedArchived = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
-        DbBootstrapLogger.ROOT_LOGGER.tracef("Archive : %s jar-filter %s", this.filename, this.filterOnJarFilename);
+        DbBootstrapLogger.ROOT_LOGGER.infof("Archive : %s jar-filter %s", this.filename, this.filterOnJarFilename.toString());
     }
 
     @Override
@@ -114,7 +114,7 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
         if (deploymentUnit.getName().equals(filename)) {
             scanForAnnotationsAndProcessAnnotatedFiles(deploymentUnit, root);
         } else {
-            DbBootstrapLogger.ROOT_LOGGER.tracef("%s did not match %s", filename, root.getPathName());
+            DbBootstrapLogger.ROOT_LOGGER.tracef("%s did not match %s", filename, deploymentUnit.getName());
         }
     }
 
@@ -176,11 +176,13 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
         Collections.sort(sortedList, new BootstrapperSorter());
         // Run all BootstrapSchema annotations
         for (Entry<BootstrapDatabase, Class<?>> entry : sortedList) {
+            DbBootstrapLogger.ROOT_LOGGER.infof("Executing Bootstrap Schema method for %s %s",entry.getKey().name(),entry.getValue().getName());
             executeMethod(entry.getValue(), entry.getKey(), BootstrapSchema.class, classLoader);
         }
 
         // Run all UpgradeSchema annotations
         for (Entry<BootstrapDatabase, Class<?>> entry : sortedList) {
+            DbBootstrapLogger.ROOT_LOGGER.infof("Executing Update Schema method for %s %s",entry.getKey().name(),entry.getValue().getName());
             executeMethod(entry.getValue(), entry.getKey(), UpdateSchema.class, classLoader);
         }
     }

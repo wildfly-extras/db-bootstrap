@@ -21,6 +21,7 @@ import org.hibernate.Transaction;
 import org.wildfly.extras.db_bootstrap.annotations.BootstrapDatabase;
 import org.wildfly.extras.db_bootstrap.annotations.BootstrapSchema;
 import org.wildfly.extras.db_bootstrap.annotations.UpdateSchema;
+import org.wildfly.extras.db_bootstrap.dbutils.HibernateTestUtil;
 /**
  * @author Flemming Harms
  */
@@ -31,7 +32,8 @@ public class DatabaseBootstrapNoCfgFileTester {
     private void createSchema() {
         Session session = HibernateTestUtil.getSessionFactory().openSession();
         Transaction tx = session.beginTransaction();
-        SQLQuery query = session.createSQLQuery("INSERT INTO PERSON VALUES (2, 'Jane','Doe')");
+        HibernateTestUtil.createTestSchema(session);
+        SQLQuery query = session.createSQLQuery("INSERT INTO PERSON (PersonId,Firstname) VALUES (2, 'Jane')");
         query.executeUpdate();
         tx.commit();
         session.close();
@@ -41,6 +43,7 @@ public class DatabaseBootstrapNoCfgFileTester {
     private void updateSchema() {
         Session session = HibernateTestUtil.getSessionFactory().openSession();
         Transaction tx = session.beginTransaction();
+        HibernateTestUtil.alterTestSchema(session,"Lastname");
         SQLQuery query = session.createSQLQuery("UPDATE PERSON SET Lastname ='Way' WHERE personId = '2'");
         query.executeUpdate();
         tx.commit();

@@ -17,6 +17,7 @@ package org.wildfly.extras.db_bootstrap.databasebootstrap;
 
 import org.hibernate.SQLQuery;
 import org.hibernate.Session;
+import org.hibernate.Transaction;
 import org.wildfly.extras.db_bootstrap.annotations.BootstrapDatabase;
 import org.wildfly.extras.db_bootstrap.annotations.BootstrapSchema;
 import org.wildfly.extras.db_bootstrap.annotations.UpdateSchema;
@@ -24,22 +25,28 @@ import org.wildfly.extras.db_bootstrap.dbutils.HibernateTestUtil;
 /**
  * @author Flemming Harms
  */
-@BootstrapDatabase(hibernateCfg="META-INF/hibernate.cfg.xml", priority = 99)
-public class DatabaseBootstrapTester {
+@BootstrapDatabase(priority = 99)
+public class DatabaseBootstrapExplodedTester {
 
     @BootstrapSchema
-    private void createSchema(Session session) {
+    private void createSchema() {
+        Session session = HibernateTestUtil.getSessionFactory().openSession();
+        Transaction tx = session.beginTransaction();
         HibernateTestUtil.createTestSchema(session);
-        SQLQuery query = session.createSQLQuery("INSERT INTO PERSON (PersonId,Firstname) VALUES (1, 'John')");
+        SQLQuery query = session.createSQLQuery("INSERT INTO PERSON (PersonId,Firstname) VALUES (3, 'Superman')");
         query.executeUpdate();
-        session.flush();
+        tx.commit();
+        session.close();
     }
 
     @UpdateSchema
-    private void updateSchema(Session session) {
-        HibernateTestUtil.alterTestSchema(session,"Mobile");
-        SQLQuery query = session.createSQLQuery("UPDATE PERSON SET Mobile ='555-1234' WHERE PersonId = '1'");
+    private void updateSchema() {
+        Session session = HibernateTestUtil.getSessionFactory().openSession();
+        Transaction tx = session.beginTransaction();
+        HibernateTestUtil.alterTestSchema(session, "location");
+        SQLQuery query = session.createSQLQuery("UPDATE PERSON SET location ='Earth' WHERE personId = '3'");
         query.executeUpdate();
-        session.flush();
+        tx.commit();
+        session.close();
     }
 }
