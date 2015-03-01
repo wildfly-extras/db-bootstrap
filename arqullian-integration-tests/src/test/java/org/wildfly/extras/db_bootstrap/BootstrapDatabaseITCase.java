@@ -15,7 +15,11 @@
  */
 package org.wildfly.extras.db_bootstrap;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.junit.Assert.assertThat;
+
+import java.util.Arrays;
+import java.util.List;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -36,6 +40,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.wildfly.extras.db_bootstrap.databasebootstrap.DatabaseBootstrapNoCfgFileTester;
 import org.wildfly.extras.db_bootstrap.databasebootstrap.DatabaseBootstrapTester;
+import org.wildfly.extras.db_bootstrap.databasebootstrap.DatabaseBootstrapWarTester;
 import org.wildfly.extras.db_bootstrap.dbutils.HibernateTestUtil;
 
 /**
@@ -91,6 +96,21 @@ public class BootstrapDatabaseITCase {
         return ear;
     }
     
+    @Deployment(order = 4, name = "war-inside-ear")
+    public static Archive<?> deployWarInsideEar() throws Exception {
+        WebArchive warLib = ShrinkWrap.create(WebArchive.class, "bootstrap.war");
+        warLib.addClasses(DatabaseBootstrapWarTester.class);
+        warLib.addClasses(HibernateTestUtil.class);
+        
+        JavaArchive lib = ShrinkWrap.create(JavaArchive.class, "bootstrap.jar");
+        addBaseResources(lib);
+        
+        EnterpriseArchive ear = ShrinkWrap.create(EnterpriseArchive.class, ARCHIVE_NAME + "-war-inside-ear.ear");
+        ear.addAsModule(warLib);
+        ear.addAsLibraries(lib);
+        return ear;
+    }
+    
     private static void addBaseResources(JavaArchive lib) {
         lib.addClasses(BootstrapDatabaseITCase.class);
         lib.addAsManifestResource("META-INF/persistence.xml", "persistence.xml");
@@ -105,27 +125,32 @@ public class BootstrapDatabaseITCase {
     @OperateOnDeployment("with-hibernate-cfg")
     public void testRunBootstrapWithHibernate() throws Exception {
         Query query = testEm.createNativeQuery("select * from person where PersonId = '1'");
-        Object[] result = (Object[]) query.getSingleResult();
-        assertEquals("John",result[1]);
-        assertEquals("555-1234",result[3]);
+        List<Object> result = Arrays.asList((Object[]) query.getSingleResult());
+        assertThat(result, hasItems((Object)"John","555-1234"));
     }
     
     @Test
     @OperateOnDeployment("without-hibernate-cfg")
     public void testRunBootstrapWithoutHibernate() throws Exception {
         Query query = testEm.createNativeQuery("select * from person where PersonId = '2'");
-        Object[] result = (Object[]) query.getSingleResult();
-        assertEquals("Jane",result[1]);
-        assertEquals("Way",result[4]);
+        List<Object> result = Arrays.asList((Object[]) query.getSingleResult());
+        assertThat(result, hasItems((Object)"Jane","Way"));
     }
     
     @Test
     @OperateOnDeployment("dummy-exploded")
     public void testRunBootstrapWithExplodedEARfile() throws Exception {
         Query query = testEm.createNativeQuery("select * from person where PersonId = '3'");
-        Object[] result = (Object[]) query.getSingleResult();
-        assertEquals("Superman",result[1]);
-        assertEquals("Earth",result[2]);
+        List<Object> result = Arrays.asList((Object[]) query.getSingleResult());
+        assertThat(result, hasItems((Object)"Superman","Earth"));
+    }
+    
+    @Test
+    @OperateOnDeployment("war-inside-ear")
+    public void testRunBootstrapWithWarInsideEARfile() throws Exception {
+        Query query = testEm.createNativeQuery("select * from person where PersonId = '4'");
+        List<Object> result = Arrays.asList((Object[]) query.getSingleResult());
+        assertThat(result, hasItems((Object)"Batman","Robin"));
     }
 
 }

@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -48,6 +47,8 @@ import org.jboss.dmr.ModelNode;
 import org.jboss.modules.ModuleLoadException;
 import org.jboss.vfs.VFSUtils;
 import org.jboss.vfs.VirtualFile;
+import org.jboss.vfs.VirtualFileFilter;
+import org.jboss.vfs.VirtualFileFilterWithAttributes;
 import org.jboss.vfs.VisitorAttributes;
 import org.scannotation.AnnotationDB;
 import org.wildfly.extras.db_bootstrap.annotations.BootstrapDatabase;
@@ -81,55 +82,52 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
     public static final String DBBOOTSTRAP_SYSTEM_PROPERTY_PREFIX = "dbbootstrap";
     private final String filename;
     private final FilenameContainFilter filterOnJarFilename;
-    private final Set<String> parsedArchived;
 
     public DbBootstrapScanDetectorProcessor(final String filename, final List<ModelNode> filterOnName) {
         this.filename = filename;
-        if (!filterOnName.isEmpty()) {
-            this.filterOnJarFilename = new FilenameContainFilter(filterOnName, VisitorAttributes.RECURSE);
-        } else {
-            this.filterOnJarFilename = null;
+        List<String> filter = new ArrayList<>(filterOnName.size());
+
+        for (ModelNode modelNode : filterOnName) {
+            filter.add("**/"+modelNode.asString());
         }
-        this.parsedArchived = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
-        DbBootstrapLogger.ROOT_LOGGER.infof("Archive : %s jar-filter %s", this.filename, this.filterOnJarFilename.toString());
+
+        this.filterOnJarFilename = new FilenameContainFilter(filter, VisitorAttributes.RECURSE);
+
+        if (!filterOnName.isEmpty()) {
+            DbBootstrapLogger.ROOT_LOGGER.infof("Archive : %s jar-filter %s", this.filename, filterOnJarFilename.toString());
+        }
     }
 
     @Override
     public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
-
         DeploymentUnit deploymentUnit = phaseContext.getDeploymentUnit();
+        String deploymentName = deploymentUnit.getName();
 
-        boolean currentModuleIsSubmoduleInAnotherModule = deploymentUnit.getParent() != null;
-        if (currentModuleIsSubmoduleInAnotherModule) {
-            DbBootstrapLogger.ROOT_LOGGER.tracef("Not registering module '%s' for scaning, as it is a submodule of '%s'",
-                    deploymentUnit.getName(), deploymentUnit.getParent().getName());
-
-            // As the top level module (including its submodules) gets scanned, we don't want to scan its submodules seperately
-            // as well (would lead to double scanning)
+        if (isSubdeployment(deploymentUnit)) {
             return;
         }
 
-        ResourceRoot deploymentRoot = deploymentUnit.getAttachment(Attachments.DEPLOYMENT_ROOT);
-        VirtualFile root = deploymentRoot.getRoot();
-        if (deploymentUnit.getName().equals(filename)) {
-            scanForAnnotationsAndProcessAnnotatedFiles(deploymentUnit, root);
+        if (deploymentName.equals(filename)) {
+            scanForAnnotationsAndProcessAnnotatedFiles(deploymentUnit,filterOnJarFilename);
         } else {
-            DbBootstrapLogger.ROOT_LOGGER.tracef("%s did not match %s", filename, deploymentUnit.getName());
+            DbBootstrapLogger.ROOT_LOGGER.tracef("%s did not match %s", filename, deploymentName);
         }
     }
 
-    private void scanForAnnotationsAndProcessAnnotatedFiles(DeploymentUnit deploymentUnit, VirtualFile root) {
-        parsedArchived.add(root.getPathName());
+    private void scanForAnnotationsAndProcessAnnotatedFiles(DeploymentUnit deploymentUnit, VirtualFileFilterWithAttributes filterOnJarFilename) {
+        ResourceRoot deploymentRoot = deploymentUnit.getAttachment(Attachments.DEPLOYMENT_ROOT);
+        VirtualFile root = deploymentRoot.getRoot();
+
         DbBootstrapLogger.ROOT_LOGGER.tracef("match on %s", root.getPathName());
         try {
-            URL[] classLoaderurls = getJarList(root, false);
-            if (classLoaderurls.length > 0) {
+            Set<URL> classLoaderurls = getJarList(root, false, filterOnJarFilename);
+            if (classLoaderurls.size() > 0) {
                 final AnnotationDB db = new AnnotationDB();
                 ClassLoader classLoader = addDynamicResources(classLoaderurls, deploymentUnit);
                 if (filterOnJarFilename == null) {
                     scanForAnnotation(classLoaderurls, db);
                 } else {
-                    scanForAnnotation(getJarList(root, true), db);
+                    scanForAnnotation(getJarList(root, true, filterOnJarFilename), db);
                 }
                 processAnnotatedFiles(db, classLoader);
             }
@@ -142,8 +140,7 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
         Map<String, Set<String>> annotationIndex = db.getAnnotationIndex();
         Set<String> databaseBoostrapperClasses = annotationIndex.get(BootstrapDatabase.class.getName());
         if (databaseBoostrapperClasses != null) {
-            Map<BootstrapDatabase, Class<?>> bootstrapMap = new HashMap<BootstrapDatabase, Class<?>>(
-                    databaseBoostrapperClasses.size());
+            Map<BootstrapDatabase, Class<?>> bootstrapMap = new HashMap<BootstrapDatabase, Class<?>>(databaseBoostrapperClasses.size());
             for (String clazz : databaseBoostrapperClasses) {
                 try {
                     Class<?> annotatedClazz = Class.forName(clazz, true, classLoader);
@@ -324,12 +321,12 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
      * @throws IOException
      * @throws URISyntaxException
      */
-    private void scanForAnnotation(URL[] jars, AnnotationDB db) throws IOException, URISyntaxException {
+    private void scanForAnnotation(Set<URL> jars, AnnotationDB db) throws IOException, URISyntaxException {
         db.setScanClassAnnotations(true);
         db.setScanFieldAnnotations(false);
         db.setScanMethodAnnotations(false);
         db.setScanParameterAnnotations(false);
-        db.scanArchives(jars);
+        db.scanArchives(jars.toArray(new URL[0]));
     }
 
     /**
@@ -337,44 +334,43 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
      *
      * @param deploymentRoot
      * @param filter - true if the jar filename filter should be applied
+     * @param filterOnJarFilename
      * @return A arrays of {@link URL}
      * @throws DeploymentUnitProcessingException
      * @throws IOException
      */
-    private URL[] getJarList(final VirtualFile deploymentRoot, boolean filter) throws DeploymentUnitProcessingException,
+    private Set<URL> getJarList(final VirtualFile deploymentRoot, boolean filter, VirtualFileFilter filterOnJarFilename) throws DeploymentUnitProcessingException,
             IOException {
+        TreeSet<URL> uniqueArchiveUrls = new TreeSet<URL>(new UniqueArchiveUrlsComparator());
         List<VirtualFile> entries;
+
         if (filter) {
             entries = deploymentRoot.getChildrenRecursively(filterOnJarFilename);
         } else {
             entries = deploymentRoot.getChildrenRecursively();
         }
 
-        TreeSet<URL> uniqueArchiveUrls = new TreeSet<URL>(new Comparator<URL>() {
-            @Override
-            public int compare(URL o1, URL o2) {
-                return o1.toString().compareTo(o2.toString());
-            }
-        });
-
         for (VirtualFile virtualFile : entries) {
             try {
-                URL url = VFSUtils.getRootURL(virtualFile);
+                URL url = VFSUtils.getPhysicalURL(virtualFile);
                 uniqueArchiveUrls.add(url);
-
             } catch (NullPointerException ignore) {
                 // Happens if 'filename' refers to a dir or file, which is not an archive or which is not inside an archive.
                 // These can safely be ignored.
             }
         }
-        return uniqueArchiveUrls.toArray(new URL[uniqueArchiveUrls.size()]);
+        return uniqueArchiveUrls;
+    }
+
+    private static class UniqueArchiveUrlsComparator implements Comparator<URL> {
+        @Override
+        public int compare(URL o1, URL o2) {
+            return o1.toString().compareTo(o2.toString());
+        }
     }
 
     @Override
     public void undeploy(DeploymentUnit deploymentUnit) {
-        final ResourceRoot deploymentRoot = deploymentUnit.getAttachment(Attachments.DEPLOYMENT_ROOT);
-        VirtualFile root = deploymentRoot.getRoot();
-        parsedArchived.remove(root.getParent().getPathName());
     }
 
     /**
@@ -385,9 +381,25 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
      * @throws DeploymentUnitProcessingException
      * @throws ModuleLoadException
      */
-    private ClassLoader addDynamicResources(final URL[] urls, final DeploymentUnit deploymentUnit)
+    private ClassLoader addDynamicResources(final Set<URL> urls, final DeploymentUnit deploymentUnit)
             throws DeploymentUnitProcessingException, ModuleLoadException {
-        return URLClassLoader.newInstance(urls, getClass().getClassLoader());
+        return URLClassLoader.newInstance(urls.toArray(new URL[0]), getClass().getClassLoader());
+    }
+
+    /**
+     * As the top level module (including its submodules) gets scanned, we don't want to scan its submodules seperately
+     * as well (would lead to double scanning)
+     * @param deploymentUnit - the dployment unit to test
+     * @return true if this is a sub deployment
+     */
+    private boolean isSubdeployment(DeploymentUnit deploymentUnit) {
+        boolean currentModuleIsSubmoduleInAnotherModule = deploymentUnit.getParent() != null;
+        if (currentModuleIsSubmoduleInAnotherModule) {
+            DbBootstrapLogger.ROOT_LOGGER.tracef("Not registering module '%s' for scaning, as it is a submodule of '%s'",
+                    deploymentUnit.getName(), deploymentUnit.getParent().getName());
+            return true;
+        }
+        return false;
     }
 
 }
