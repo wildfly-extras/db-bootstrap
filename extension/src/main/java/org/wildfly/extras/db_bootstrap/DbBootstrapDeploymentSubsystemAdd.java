@@ -35,7 +35,6 @@ class DbBootstrapDeploymentSubsystemAdd extends AbstractBoottimeAddStepHandler {
 
     @Override
     protected void performBoottime(OperationContext context, ModelNode operation, ModelNode model, ServiceVerificationHandler verificationHandler, List<ServiceController<?>> newControllers) throws OperationFailedException {
-        System.out.println("DbBootstrapDeploymentSubsystemAdd.performBoottime()"+operation+"....."+context.toString());
         DbBootstrapLogger.ROOT_LOGGER.subsystemStarted();
 
         context.addStep(new AbstractDeploymentChainStep() {
