@@ -22,6 +22,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -47,8 +48,6 @@ import org.jboss.dmr.ModelNode;
 import org.jboss.modules.ModuleLoadException;
 import org.jboss.vfs.VFSUtils;
 import org.jboss.vfs.VirtualFile;
-import org.jboss.vfs.VirtualFileFilter;
-import org.jboss.vfs.VirtualFileFilterWithAttributes;
 import org.jboss.vfs.VisitorAttributes;
 import org.scannotation.AnnotationDB;
 import org.wildfly.extras.db_bootstrap.annotations.BootstrapDatabase;
@@ -82,9 +81,11 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
     public static final String DBBOOTSTRAP_SYSTEM_PROPERTY_PREFIX = "dbbootstrap";
     private final String filename;
     private final FilenameContainFilter filterOnJarFilename;
+    private final List<String> explicitlyListedDatabaseBootstrapperClassNames;
 
-    public DbBootstrapScanDetectorProcessor(final String filename, final List<ModelNode> filterOnName) {
+    public DbBootstrapScanDetectorProcessor(final String filename, final List<ModelNode> filterOnName, List<String> explicitlyListedDatabaseBootstrapperClassNames) {
         this.filename = filename;
+        this.explicitlyListedDatabaseBootstrapperClassNames = explicitlyListedDatabaseBootstrapperClassNames;
         List<String> filter = new ArrayList<>(filterOnName.size());
 
         for (ModelNode modelNode : filterOnName) {
@@ -93,9 +94,7 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
 
         this.filterOnJarFilename = new FilenameContainFilter(filter, VisitorAttributes.RECURSE);
 
-        if (!filterOnName.isEmpty()) {
-            DbBootstrapLogger.ROOT_LOGGER.infof("Archive : %s jar-filter %s", this.filename, filterOnJarFilename.toString());
-        }
+        DbBootstrapLogger.ROOT_LOGGER.infof("Archive: [%s], jar-filter: [%s], classes: %s", this.filename, filterOnJarFilename.toString(), explicitlyListedDatabaseBootstrapperClassNames.toString());
     }
 
     @Override
@@ -108,38 +107,47 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
         }
 
         if (deploymentName.equals(filename)) {
-            scanForAnnotationsAndProcessAnnotatedFiles(deploymentUnit,filterOnJarFilename);
+            scanForAnnotationsAndProcessAnnotatedFiles(deploymentUnit);
         } else {
             DbBootstrapLogger.ROOT_LOGGER.tracef("%s did not match %s", filename, deploymentName);
         }
     }
 
-    private void scanForAnnotationsAndProcessAnnotatedFiles(DeploymentUnit deploymentUnit, VirtualFileFilterWithAttributes filterOnJarFilename) {
+    private void scanForAnnotationsAndProcessAnnotatedFiles(DeploymentUnit deploymentUnit) {
         ResourceRoot deploymentRoot = deploymentUnit.getAttachment(Attachments.DEPLOYMENT_ROOT);
-        VirtualFile root = deploymentRoot.getRoot();
 
-        DbBootstrapLogger.ROOT_LOGGER.tracef("match on %s", root.getPathName());
+        DbBootstrapLogger.ROOT_LOGGER.tracef("match on %s", deploymentRoot.getRoot().getPathName());
         try {
-            Set<URL> classLoaderurls = getJarList(root, false, filterOnJarFilename);
+            Set<URL> classLoaderurls = getJarList(deploymentRoot.getRoot(), false);
             if (classLoaderurls.size() > 0) {
-                final AnnotationDB db = new AnnotationDB();
                 ClassLoader classLoader = addDynamicResources(classLoaderurls, deploymentUnit);
-                if (filterOnJarFilename == null) {
-                    scanForAnnotation(classLoaderurls, db);
+                boolean hasExplicitlyListedDatabaseBootstrapperClasses = !explicitlyListedDatabaseBootstrapperClassNames.isEmpty();
+                if (hasExplicitlyListedDatabaseBootstrapperClasses) {
+                    DbBootstrapLogger.ROOT_LOGGER.tracef("Using manually configured @%s classes: %s", BootstrapDatabase.class.getSimpleName(), explicitlyListedDatabaseBootstrapperClassNames);
+                    processAnnotatedFiles(classLoader, explicitlyListedDatabaseBootstrapperClassNames);
                 } else {
-                    scanForAnnotation(getJarList(root, true, filterOnJarFilename), db);
+                    DbBootstrapLogger.ROOT_LOGGER.tracef("Scanning for @%s classes", BootstrapDatabase.class.getSimpleName());
+                    scanForAnnotationsAndProcessAnnotatedFiles(classLoader, classLoaderurls, deploymentRoot.getRoot());
                 }
-                processAnnotatedFiles(db, classLoader);
             }
         } catch (Exception e) {
             DbBootstrapLogger.ROOT_LOGGER.error("Unable to process the internal jar files", e);
         }
     }
 
-    private void processAnnotatedFiles(final AnnotationDB db, final ClassLoader classLoader) throws Exception {
-        Map<String, Set<String>> annotationIndex = db.getAnnotationIndex();
-        Set<String> databaseBoostrapperClasses = annotationIndex.get(BootstrapDatabase.class.getName());
-        if (databaseBoostrapperClasses != null) {
+    private void scanForAnnotationsAndProcessAnnotatedFiles(final ClassLoader classLoader, Set<URL> classLoaderurls, VirtualFile deploymentRoot) throws Exception {
+        AnnotationDB db;
+        if (filterOnJarFilename == null) {
+            db = scanForAnnotation(classLoaderurls);
+        } else {
+            db = scanForAnnotation(getJarList(deploymentRoot, true));
+        }
+        Set<String> databaseBoostrapperClasses = db.getAnnotationIndex().get(BootstrapDatabase.class.getName());
+        processAnnotatedFiles(classLoader, databaseBoostrapperClasses);
+    }
+
+    private void processAnnotatedFiles(final ClassLoader classLoader, Collection<String> databaseBoostrapperClasses) throws Exception {
+        if (databaseBoostrapperClasses != null && databaseBoostrapperClasses.size() > 0) {
             Map<BootstrapDatabase, Class<?>> bootstrapMap = new HashMap<BootstrapDatabase, Class<?>>(databaseBoostrapperClasses.size());
             for (String clazz : databaseBoostrapperClasses) {
                 try {
@@ -317,16 +325,21 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
      * Scan all jar files for annotations and build a internal map with the result.
      *
      * @param jarList
-     * @param db
      * @throws IOException
      * @throws URISyntaxException
      */
-    private void scanForAnnotation(Set<URL> jars, AnnotationDB db) throws IOException, URISyntaxException {
+    private AnnotationDB scanForAnnotation(Set<URL> jars) throws IOException, URISyntaxException {
+        AnnotationDB db = new AnnotationDB();
         db.setScanClassAnnotations(true);
         db.setScanFieldAnnotations(false);
         db.setScanMethodAnnotations(false);
         db.setScanParameterAnnotations(false);
+        long before = System.currentTimeMillis();
+        DbBootstrapLogger.ROOT_LOGGER.tracef("Scanning for annotations started");
         db.scanArchives(jars.toArray(new URL[0]));
+        long duration = System.currentTimeMillis() - before;
+        DbBootstrapLogger.ROOT_LOGGER.tracef("Scanning for annotations finished - took [%s] ms", duration);
+        return db;
     }
 
     /**
@@ -334,12 +347,11 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
      *
      * @param deploymentRoot
      * @param filter - true if the jar filename filter should be applied
-     * @param filterOnJarFilename
      * @return A arrays of {@link URL}
      * @throws DeploymentUnitProcessingException
      * @throws IOException
      */
-    private Set<URL> getJarList(final VirtualFile deploymentRoot, boolean filter, VirtualFileFilter filterOnJarFilename) throws DeploymentUnitProcessingException,
+    private Set<URL> getJarList(final VirtualFile deploymentRoot, boolean filter) throws DeploymentUnitProcessingException,
             IOException {
         TreeSet<URL> uniqueArchiveUrls = new TreeSet<URL>(new UniqueArchiveUrlsComparator());
         List<VirtualFile> entries;

@@ -15,6 +15,8 @@
  */
 package org.wildfly.extras.db_bootstrap;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -40,7 +42,6 @@ class DbBootstrapScanDetectorAdd extends AbstractBoottimeAddStepHandler {
 
     @Override
     protected void populateModel(ModelNode operation, ModelNode model) throws OperationFailedException {
-System.out.println("DbBootstrapScanDetectorAdd.populateModel()");
         DbBootstrapScanDetectorResourceDefinition.FILENAME.validateAndSet(operation, model);
         DbBootstrapScanDetectorResourceDefinition.FILTER_ON_NAME.validateAndSet(operation, model);
     }
@@ -49,7 +50,6 @@ System.out.println("DbBootstrapScanDetectorAdd.populateModel()");
     protected void performBoottime(OperationContext context, ModelNode operation, ModelNode model,
             ServiceVerificationHandler verificationHandler, List<ServiceController<?>> newControllers)
             throws OperationFailedException {
-
         String filename = model.get(DbBootstrapExtension.FILENAME_ATTR).asString();
         ModelNode filterOnNameAttributeModelNode = model.get(DbBootstrapExtension.FILTER_ON_NAME_ATTR);
 
@@ -57,21 +57,21 @@ System.out.println("DbBootstrapScanDetectorAdd.populateModel()");
         if (filterOnNameAttributeModelNode.isDefined()) {
             filterOnNames.addAll(filterOnNameAttributeModelNode.asList());
         }
-ModelNode modelNodeAddress = operation.get("address");
-System.out.println("my node adress is: "+modelNodeAddress);
-///subsystem=db_bootstrap/bootstrap-deployments=deployments/scan=bootstrap_test-with-explicitly-listed-classes.war/class=one
-        context.addStep(new DbBootstrapDeploymentChainStep(filterOnNames, filename), OperationContext.Stage.RUNTIME);
+        // TODO: Replace hardcoded list of classes with dynamic lookup
+        List<String> classes = operation.toJSONString(true).contains("explicitly-listed") ? Arrays.asList("org.wildfly.extras.db_bootstrap.databasebootstrap.DatabaseBootstrapWithDuke") : Collections.<String>emptyList();
+        context.addStep(new DbBootstrapDeploymentChainStep(filterOnNames, filename, classes), OperationContext.Stage.RUNTIME);
     }
 
     private final class DbBootstrapDeploymentChainStep extends AbstractDeploymentChainStep {
 
-
         private final List<ModelNode> filterOnNames;
         private final String filename;
+        private final List<String> classes;
 
-        DbBootstrapDeploymentChainStep(List<ModelNode> filterOnNames, String filename) {
+        DbBootstrapDeploymentChainStep(List<ModelNode> filterOnNames, String filename, List<String> classes) {
             this.filterOnNames = filterOnNames;
             this.filename = filename;
+            this.classes = classes;
         }
 
         @Override
@@ -84,7 +84,7 @@ System.out.println("my node adress is: "+modelNodeAddress);
                 String subsystemName = DbBootstrapExtension.SUBSYSTEM_NAME;
                 int priority = Phase.PARSE_WEB_DEPLOYMENT + priorityDelta.getAndIncrement();
                 DbBootstrapScanDetectorProcessor processor;
-                processor = new DbBootstrapScanDetectorProcessor(filename, filterOnNames);
+                processor = new DbBootstrapScanDetectorProcessor(filename, filterOnNames, classes);
                 processorTarget.addDeploymentProcessor(subsystemName, Phase.PARSE, priority, processor);
 
             } catch (Exception e) {

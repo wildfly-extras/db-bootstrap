@@ -23,11 +23,8 @@ import org.jboss.dmr.ModelNode;
  * @author Nicky Moelholm (moelholm@gmail.com)
  */
 class DbBootstrapClassAdd extends AbstractAddStepHandler {
-
     @Override
     protected void populateModel(ModelNode operation, ModelNode model) throws OperationFailedException {
-        System.out.println("DbBootstrapClassAdd.populateModel()");
         DbBootstrapClassResourceDefinition.CLASSNAME.validateAndSet(operation, model);
     }
-
 }

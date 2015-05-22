@@ -170,13 +170,10 @@ public class BootstrapDatabaseITCase {
     @Test
     @OperateOnDeployment("with-explicitly-listed-classes")
     public void testRunBootstrapWithExplicitlyListedDatabaseBootstrapClasses() throws Exception {
-        // 
-        Thread.sleep(100 * 1000);
         Query dukeQuery = testEm.createNativeQuery("select * from person where PersonId = '9'");
         List<Object> dukeResult = Arrays.asList((Object[]) dukeQuery.getSingleResult());
         assertThat(dukeResult, hasItems((Object)"Duke","Javasson"));
-        //
         Query tuxQuery = testEm.createNativeQuery("select * from person where PersonId = '10'");
-        assertThat(tuxQuery.getResultList().isEmpty(), is(false));
+        assertThat(tuxQuery.getResultList().isEmpty(), is(true));
     }
 }
