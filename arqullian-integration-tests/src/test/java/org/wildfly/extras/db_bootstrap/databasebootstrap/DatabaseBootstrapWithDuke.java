@@ -19,20 +19,20 @@ import org.wildfly.extras.db_bootstrap.annotations.BootstrapDatabase;
 import org.wildfly.extras.db_bootstrap.annotations.BootstrapSchema;
 import org.wildfly.extras.db_bootstrap.annotations.UpdateSchema;
 /**
- * @author Flemming Harms
+ * @author Nicky Moelholm (moelholm@gmail.com)
  */
 @BootstrapDatabase(priority = 98)
-public class DatabaseBootstrapNoCfgFileTester {
+public class DatabaseBootstrapWithDuke {
     
     @BootstrapSchema
     private void createSchema() {
         PersonSchema.createTablePerson();
-        PersonSchema.insertPerson(2, "Jane");
+        PersonSchema.insertPerson(9, "Duke");
     }
 
     @UpdateSchema
     private void updateSchema() {
         PersonSchema.alterTablePersonAddColumnLastname();
-        PersonSchema.setPersonLastName(2, "Way");
+        PersonSchema.setPersonLastName(9, "Javasson");
     }
 }

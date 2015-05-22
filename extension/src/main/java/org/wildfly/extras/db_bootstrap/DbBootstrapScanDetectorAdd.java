@@ -40,7 +40,7 @@ class DbBootstrapScanDetectorAdd extends AbstractBoottimeAddStepHandler {
 
     @Override
     protected void populateModel(ModelNode operation, ModelNode model) throws OperationFailedException {
-
+System.out.println("DbBootstrapScanDetectorAdd.populateModel()");
         DbBootstrapScanDetectorResourceDefinition.FILENAME.validateAndSet(operation, model);
         DbBootstrapScanDetectorResourceDefinition.FILTER_ON_NAME.validateAndSet(operation, model);
     }
@@ -57,7 +57,9 @@ class DbBootstrapScanDetectorAdd extends AbstractBoottimeAddStepHandler {
         if (filterOnNameAttributeModelNode.isDefined()) {
             filterOnNames.addAll(filterOnNameAttributeModelNode.asList());
         }
-
+ModelNode modelNodeAddress = operation.get("address");
+System.out.println("my node adress is: "+modelNodeAddress);
+///subsystem=db_bootstrap/bootstrap-deployments=deployments/scan=bootstrap_test-with-explicitly-listed-classes.war/class=one
         context.addStep(new DbBootstrapDeploymentChainStep(filterOnNames, filename), OperationContext.Stage.RUNTIME);
     }
 

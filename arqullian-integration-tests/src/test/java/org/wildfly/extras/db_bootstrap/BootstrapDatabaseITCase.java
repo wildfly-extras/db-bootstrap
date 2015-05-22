@@ -16,6 +16,7 @@
 package org.wildfly.extras.db_bootstrap;
 
 import static org.hamcrest.CoreMatchers.hasItems;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
@@ -41,6 +42,9 @@ import org.junit.runner.RunWith;
 import org.wildfly.extras.db_bootstrap.databasebootstrap.DatabaseBootstrapNoCfgFileTester;
 import org.wildfly.extras.db_bootstrap.databasebootstrap.DatabaseBootstrapTester;
 import org.wildfly.extras.db_bootstrap.databasebootstrap.DatabaseBootstrapWarTester;
+import org.wildfly.extras.db_bootstrap.databasebootstrap.DatabaseBootstrapWithDuke;
+import org.wildfly.extras.db_bootstrap.databasebootstrap.DatabaseBootstrapWithTux;
+import org.wildfly.extras.db_bootstrap.databasebootstrap.PersonSchema;
 import org.wildfly.extras.db_bootstrap.dbutils.HibernateTestUtil;
 
 /**
@@ -78,16 +82,26 @@ public class BootstrapDatabaseITCase {
     
     @Deployment(order = 2, name = "without-hibernate-cfg")
     public static Archive<?> deployWithOutHibernate() throws Exception {
-        WebArchive war = ShrinkWrap.create(WebArchive.class, ARCHIVE_NAME + "-no-hibernate.war");
+        return archiveWithoutHibernate("-no-hibernate.war", DatabaseBootstrapNoCfgFileTester.class);
+    }
+
+    @Deployment(order = 3, name = "with-explicitly-listed-classes")
+    public static Archive<?> deployWithExplicitlyListedClasses() throws Exception {
+        return archiveWithoutHibernate("-with-explicitly-listed-classes.war", DatabaseBootstrapWithDuke.class, DatabaseBootstrapWithTux.class);
+    }
+
+    private static WebArchive archiveWithoutHibernate(String suffix, Class<?> ... bootstrapClasses) {
+        WebArchive war = ShrinkWrap.create(WebArchive.class, ARCHIVE_NAME + suffix);
         JavaArchive lib = ShrinkWrap.create(JavaArchive.class, "bootstrap-no-hibernate.jar");
-        lib.addClasses(DatabaseBootstrapNoCfgFileTester.class);
+        lib.addClass(PersonSchema.class);
+        lib.addClasses(bootstrapClasses);
         lib.addClasses(HibernateTestUtil.class);
         addBaseResources(lib);
         war.addAsLibraries(lib);
         return war;
     }
     
-    @Deployment(order = 3, name = "dummy-exploded")
+    @Deployment(order = 4, name = "dummy-exploded")
     public static Archive<?> deployDummyExploded() throws Exception {
         EnterpriseArchive ear = ShrinkWrap.create(EnterpriseArchive.class, ARCHIVE_NAME + "-dummy-exploded.ear");
         JavaArchive lib = ShrinkWrap.create(JavaArchive.class, "bootstrap-dummy.jar");
@@ -96,7 +110,7 @@ public class BootstrapDatabaseITCase {
         return ear;
     }
     
-    @Deployment(order = 4, name = "war-inside-ear")
+    @Deployment(order = 5, name = "war-inside-ear")
     public static Archive<?> deployWarInsideEar() throws Exception {
         WebArchive warLib = ShrinkWrap.create(WebArchive.class, "bootstrap.war");
         warLib.addClasses(DatabaseBootstrapWarTester.class);
@@ -153,4 +167,16 @@ public class BootstrapDatabaseITCase {
         assertThat(result, hasItems((Object)"Batman","Robin"));
     }
 
+    @Test
+    @OperateOnDeployment("with-explicitly-listed-classes")
+    public void testRunBootstrapWithExplicitlyListedDatabaseBootstrapClasses() throws Exception {
+        // 
+        Thread.sleep(100 * 1000);
+        Query dukeQuery = testEm.createNativeQuery("select * from person where PersonId = '9'");
+        List<Object> dukeResult = Arrays.asList((Object[]) dukeQuery.getSingleResult());
+        assertThat(dukeResult, hasItems((Object)"Duke","Javasson"));
+        //
+        Query tuxQuery = testEm.createNativeQuery("select * from person where PersonId = '10'");
+        assertThat(tuxQuery.getResultList().isEmpty(), is(false));
+    }
 }
