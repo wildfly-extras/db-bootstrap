@@ -94,7 +94,7 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
 
         this.filterOnJarFilename = new FilenameContainFilter(filter, VisitorAttributes.RECURSE);
 
-        DbBootstrapLogger.ROOT_LOGGER.infof("Archive: [%s], jar-filter: [%s], classes: %s", this.filename, filterOnJarFilename.toString(), explicitlyListedDatabaseBootstrapperClassNames.toString());
+        DbBootstrapLogger.ROOT_LOGGER.infof("Archive: [%s], jar-filter: %s, classes: %s", this.filename, filterOnJarFilename.toString(), explicitlyListedDatabaseBootstrapperClassNames.toString());
     }
 
     @Override
