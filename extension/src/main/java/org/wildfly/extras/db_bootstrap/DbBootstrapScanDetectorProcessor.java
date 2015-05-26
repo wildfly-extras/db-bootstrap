@@ -107,7 +107,10 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
         }
 
         if (deploymentName.equals(filename)) {
+            long before = System.currentTimeMillis();
             scanForAnnotationsAndProcessAnnotatedFiles(deploymentUnit);
+            long duration = System.currentTimeMillis() - before;
+            DbBootstrapLogger.ROOT_LOGGER.infof("Database bootstrapping took [%s] ms", duration);
         } else {
             DbBootstrapLogger.ROOT_LOGGER.tracef("%s did not match %s", filename, deploymentName);
         }
@@ -361,11 +364,15 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
         } else {
             entries = deploymentRoot.getChildrenRecursively();
         }
-
         for (VirtualFile virtualFile : entries) {
             try {
-                URL url = VFSUtils.getPhysicalURL(virtualFile);
-                uniqueArchiveUrls.add(url);
+                URL url = VFSUtils.getRootURL(virtualFile);
+                String lowerCasePathName = virtualFile.getPathName().trim().toLowerCase();
+                if (lowerCasePathName.endsWith(".war")) {
+                    uniqueArchiveUrls.add(new URL(url, "WEB-INF/classes/"));
+                } else if (lowerCasePathName.endsWith(".jar")) {
+                    uniqueArchiveUrls.add(url);
+                }
             } catch (NullPointerException ignore) {
                 // Happens if 'filename' refers to a dir or file, which is not an archive or which is not inside an archive.
                 // These can safely be ignored.
