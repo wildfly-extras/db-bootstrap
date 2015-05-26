@@ -43,7 +43,7 @@ public class DatabaseBootstrapExplodedTester {
     private void updateSchema() {
         Session session = HibernateTestUtil.getSessionFactory().openSession();
         Transaction tx = session.beginTransaction();
-        HibernateTestUtil.alterTestSchema(session, "location");
+        HibernateTestUtil.alterTestSchemaAddColumn(session, "location");
         SQLQuery query = session.createSQLQuery("UPDATE PERSON SET location ='Earth' WHERE personId = '3'");
         query.executeUpdate();
         tx.commit();

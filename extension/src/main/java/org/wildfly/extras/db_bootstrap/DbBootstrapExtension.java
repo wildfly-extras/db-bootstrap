@@ -34,6 +34,8 @@ public class DbBootstrapExtension implements Extension {
     public static final String SUBSYSTEM_NAME = "db_bootstrap";
     static final String BOOTSTRAP_DEPLOYMENT = "bootstrap-deployments";
     static final String SCAN = "scan";
+    static final String CLASS = "class";
+    static final String CLASSNAME_ATTR = "classname";
     static final String FILENAME_ATTR = "filename";
     static final String NAME_ATTR = "name";
     static final String FILTER_ON_NAME_ATTR = "filter-on-name";
@@ -43,6 +45,7 @@ public class DbBootstrapExtension implements Extension {
     static final PathElement SUBSYSTEM_PATH = PathElement.pathElement(SUBSYSTEM, SUBSYSTEM_NAME);
     static final PathElement BOOTSTRAP_DEPLOYMENT_PATH = PathElement.pathElement(BOOTSTRAP_DEPLOYMENT);
     static final PathElement SCAN_PATH = PathElement.pathElement(SCAN);
+    static final PathElement CLASS_PATH = PathElement.pathElement(CLASS);
     private static final String RESOURCE_NAME = DbBootstrapExtension.class.getPackage().getName() + ".LocalDescriptions";
 
     static StandardResourceDescriptionResolver getResolver(final String... keyPrefix) {

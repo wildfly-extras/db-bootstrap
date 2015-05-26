@@ -37,7 +37,7 @@ public class DatabaseBootstrapTester {
 
     @UpdateSchema
     private void updateSchema(Session session) {
-        HibernateTestUtil.alterTestSchema(session,"Mobile");
+        HibernateTestUtil.alterTestSchemaAddColumn(session,"Mobile");
         SQLQuery query = session.createSQLQuery("UPDATE PERSON SET Mobile ='555-1234' WHERE PersonId = '1'");
         query.executeUpdate();
         session.flush();

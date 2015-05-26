@@ -17,6 +17,8 @@ package org.wildfly.extras.db_bootstrap;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
@@ -70,5 +72,10 @@ class DbBootstrapScanDetectorResourceDefinition extends PersistentResourceDefini
     @Override
     public Collection<AttributeDefinition> getAttributes() {
         return Arrays.asList(FILENAME, FILTER_ON_NAME);
+    }
+
+    @Override
+    protected List<? extends PersistentResourceDefinition> getChildren() {
+        return Collections.singletonList(DbBootstrapClassResourceDefinition.INSTANCE);
     }
 }

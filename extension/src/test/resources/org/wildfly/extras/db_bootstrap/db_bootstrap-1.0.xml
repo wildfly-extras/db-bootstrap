@@ -2,5 +2,9 @@
     <bootstrap-deployments name="test">
         <scan name="my-file" filename="my-file.ear" filter-on-name="com.mycompany*" />
         <scan name="my-file-2" filename="my-file-2.ear" filter-on-name="com.mycompany*" />
+        <scan name="my-file-3" filename="my-file-3.ear" filter-on-name="com.mycompany*">
+        	<class name="first" classname="org.wildfly.extension.db_bootstrap.test.MyBootstrapDatabase" />
+        	<class name="second" classname="org.wildfly.extension.db_bootstrap.test.MyBootstrapDatabase2" />
+        </scan>
     </bootstrap-deployments>
 </subsystem>
