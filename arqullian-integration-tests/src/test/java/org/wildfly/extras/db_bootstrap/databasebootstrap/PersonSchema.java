@@ -19,43 +19,70 @@ import org.hibernate.SQLQuery;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.wildfly.extras.db_bootstrap.dbutils.HibernateTestUtil;
+
 /**
  * @author Nicky Moelholm (moelholm@gmail.com)
  */
 public class PersonSchema {
-    
-   static void createTablePerson() {
-        Session session = HibernateTestUtil.getSessionFactory().openSession();
-        Transaction tx = session.beginTransaction();
-        HibernateTestUtil.createTestSchema(session);
-        tx.commit();
-        session.close();
-   }
 
-   static void alterTablePersonAddColumnLastname() {
-         Session session = HibernateTestUtil.getSessionFactory().openSession();
-         Transaction tx = session.beginTransaction();
-         HibernateTestUtil.alterTestSchema(session,"Lastname");
-         tx.commit();
-         session.close();
-   }
+    static void createTablePerson() {
+        run(new WithHibernateSession() {
+            @Override
+            public void execute(Session session) {
+                HibernateTestUtil.createTestSchema(session);
+            }
+        });
+    }
 
-   static void insertPerson(int primaryKey, String firstName) {
-       Session session = HibernateTestUtil.getSessionFactory().openSession();
-       Transaction tx = session.beginTransaction();
-       SQLQuery query = session.createSQLQuery(String.format("INSERT INTO PERSON (PersonId,Firstname) VALUES (%s, '%s')", primaryKey, firstName));
-       query.executeUpdate();
-       tx.commit();
-       session.close();
-   }
-  
-  static void setPersonLastName(int primaryKey, String lastName) {
-      Session session = HibernateTestUtil.getSessionFactory().openSession();
-      Transaction tx = session.beginTransaction();
-      SQLQuery query = session.createSQLQuery(String.format("UPDATE PERSON SET Lastname = '%s' WHERE personId = %s", lastName, primaryKey));
-      query.executeUpdate();
-      tx.commit();
-      session.close();
-  }
-  
+    static void alterTablePersonAddColumnLastname() {
+        run(new WithHibernateSession() {
+            @Override
+            public void execute(Session session) {
+                HibernateTestUtil.alterTestSchemaAddColumn(session, "Lastname");
+            }
+        });
+    }
+
+    static void insertPerson(final int primaryKey, final String firstName) {
+        run(new WithHibernateSession() {
+            @Override
+            public void execute(Session session) {
+                SQLQuery query = session.createSQLQuery(String.format("INSERT INTO PERSON (PersonId,Firstname) VALUES (%s, '%s')", primaryKey, firstName));
+                query.executeUpdate();
+            }
+        });
+    }
+
+    static void setPersonLastName(final int primaryKey, final String lastName) {
+        run(new WithHibernateSession() {
+            @Override
+            public void execute(Session session) {
+                SQLQuery query = session.createSQLQuery(String.format("UPDATE PERSON SET Lastname = '%s' WHERE personId = %s", lastName, primaryKey));
+                query.executeUpdate();
+            }
+        });
+    }
+
+    private static void run(WithHibernateSession callback) {
+        Session session = null;
+        Transaction tx = null;
+        try {
+            session = HibernateTestUtil.getSessionFactory().openSession();
+            tx = session.beginTransaction();
+            callback.execute(session);
+            tx.commit();
+        } finally {
+            if (tx.isActive()) {
+                tx.rollback();
+            }
+            if (session != null) {
+                session.close();
+            }
+        }
+    }
+
+    private static interface WithHibernateSession {
+        void execute(Session session);
+    }
+
 }

@@ -43,7 +43,7 @@ public class DatabaseBootstrapWarTester {
     private void updateSchema() {
         Session session = HibernateTestUtil.getSessionFactory().openSession();
         Transaction tx = session.beginTransaction();
-        HibernateTestUtil.alterTestSchema(session, "sidekick");
+        HibernateTestUtil.alterTestSchemaAddColumn(session, "sidekick");
         SQLQuery query = session.createSQLQuery("UPDATE PERSON SET sidekick ='Robin' WHERE personId = '4'");
         query.executeUpdate();
         tx.commit();

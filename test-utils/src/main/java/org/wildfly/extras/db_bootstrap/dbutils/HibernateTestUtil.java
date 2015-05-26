@@ -53,7 +53,7 @@ public class HibernateTestUtil {
         query.executeUpdate();
     }
 
-    public static void alterTestSchema(Session session, String column) {
+    public static void alterTestSchemaAddColumn(Session session, String column) {
         SQLQuery query = session.createSQLQuery(String.format("ALTER TABLE person ADD IF NOT EXISTS %s varchar(255)", column));
         query.executeUpdate();
     }
