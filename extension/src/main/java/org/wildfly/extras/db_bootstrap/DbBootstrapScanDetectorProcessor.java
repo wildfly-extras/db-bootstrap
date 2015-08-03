@@ -17,7 +17,6 @@ package org.wildfly.extras.db_bootstrap;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -111,7 +110,7 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
             long before = System.currentTimeMillis();
             try {
                 scanForAnnotationsAndProcessAnnotatedFiles(deploymentUnit);
-            } catch (InvocationTargetException e) {
+            } catch (Exception e) {
                 throw new DeploymentUnitProcessingException(e);
             }
             long duration = System.currentTimeMillis() - before;
@@ -121,7 +120,7 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
         }
     }
 
-    private void scanForAnnotationsAndProcessAnnotatedFiles(DeploymentUnit deploymentUnit) throws InvocationTargetException {
+    private void scanForAnnotationsAndProcessAnnotatedFiles(DeploymentUnit deploymentUnit) throws Exception {
         ResourceRoot deploymentRoot = deploymentUnit.getAttachment(Attachments.DEPLOYMENT_ROOT);
 
         DbBootstrapLogger.ROOT_LOGGER.tracef("match on %s", deploymentRoot.getRoot().getPathName());
@@ -138,10 +137,9 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
                     scanForAnnotationsAndProcessAnnotatedFiles(classLoader, classLoaderurls, deploymentRoot.getRoot());
                 }
             }
-        } catch (InvocationTargetException e) {
-            throw e;
         } catch (Exception e) {
             DbBootstrapLogger.ROOT_LOGGER.error("Unable to process the internal jar files", e);
+            throw e;
         }
     }
 
@@ -180,7 +178,6 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
      *
      * @param bootstrapMap
      * @param classLoader
-     * @throws InvocationTargetException if an annotated method throws an exception
      * @throws Exception
      */
     private void processAnnotatedClasses(final Map<BootstrapDatabase, Class<?>> bootstrapMap, final ClassLoader classLoader)
@@ -224,7 +221,6 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
      * @param bootstrapDatabaseAnnotation - The configuration for creating a session
      * @param annotation - The annotation the method need to be annotated with for calling
      * @param classLoader - The class loader
-     * @throws InvocationTargetException if an annotated method throws an exception
      * @throws Exception
      */
     private <T extends Annotation> void executeMethod(final Class<?> annotatedClazz,
@@ -260,7 +256,6 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
      * @param classLoader - The classloader to load the hibernate resources from
      * @param method - the method to invoke
      * @param bootstrapClass - the class to invoke the method on
-     * @throws InvocationTargetException if {@code method} throws an exception
      * @throws Exception
      */
     private void invokeWithSession(final BootstrapDatabase bootstrapDatabaseAnnotation, final ClassLoader classLoader,
@@ -269,13 +264,10 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
         Transaction tx = session.beginTransaction();
         try {
             method.invoke(bootstrapClass, session);
-        } catch (InvocationTargetException e) {
-            DbBootstrapLogger.ROOT_LOGGER.error(String.format("Method %s threw exception", method.getName()), e);
-            tx.rollback();
-            throw e;
         } catch (Exception e) {
             DbBootstrapLogger.ROOT_LOGGER.error(String.format("Unable to invoke method %s ", method.getName()), e);
             tx.rollback();
+            throw e;
         } finally {
             if (tx.isActive()) {
                 tx.commit();
