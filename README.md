@@ -74,7 +74,7 @@ To use db_bootstrap in your code you will need to add a Maven dependency to your
     <dependency>
         <groupId>org.wildfly.extras.db_bootstrap</groupId>
         <artifactId>db-bootstrap</artifactId>
-        <version>1.0.6</version>
+        <version>1.0.7</version>
         <scope>provided</scope>
     </dependency>
 
@@ -139,5 +139,6 @@ Contributors:
 - Tomaž Cerar -  Providing a template with https://github.com/ctomc/wildfly-sdd and help. 
 - Frank Vissing - Creator of db-bootstrap
 - Flemming Harms - Creator of db-bootstrap 
-- Nicky Moelholm - Contributer 
-- Rasmus Lund - Contributer
+- Nicky Moelholm - Contributor 
+- Rasmus Lund - Contributor
+- Martin Kamp Jensen - Contributor

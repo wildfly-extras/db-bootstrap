@@ -38,6 +38,7 @@ import org.hibernate.Transaction;
 import org.hibernate.boot.registry.StandardServiceRegistry;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
+import org.hibernate.resource.transaction.spi.TransactionStatus;
 import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
 import org.jboss.as.server.deployment.DeploymentUnit;
@@ -108,7 +109,11 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
 
         if (deploymentName.equals(filename)) {
             long before = System.currentTimeMillis();
-            scanForAnnotationsAndProcessAnnotatedFiles(deploymentUnit);
+            try {
+                scanForAnnotationsAndProcessAnnotatedFiles(deploymentUnit);
+            } catch (Exception e) {
+                throw new DeploymentUnitProcessingException(e);
+            }
             long duration = System.currentTimeMillis() - before;
             DbBootstrapLogger.ROOT_LOGGER.infof("Database bootstrapping took [%s] ms", duration);
         } else {
@@ -116,7 +121,7 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
         }
     }
 
-    private void scanForAnnotationsAndProcessAnnotatedFiles(DeploymentUnit deploymentUnit) {
+    private void scanForAnnotationsAndProcessAnnotatedFiles(DeploymentUnit deploymentUnit) throws Exception {
         ResourceRoot deploymentRoot = deploymentUnit.getAttachment(Attachments.DEPLOYMENT_ROOT);
 
         DbBootstrapLogger.ROOT_LOGGER.tracef("match on %s", deploymentRoot.getRoot().getPathName());
@@ -135,6 +140,7 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
             }
         } catch (Exception e) {
             DbBootstrapLogger.ROOT_LOGGER.error("Unable to process the internal jar files", e);
+            throw e;
         }
     }
 
@@ -262,8 +268,9 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
         } catch (Exception e) {
             DbBootstrapLogger.ROOT_LOGGER.error(String.format("Unable to invoke method %s ", method.getName()), e);
             tx.rollback();
+            throw e;
         } finally {
-            if (tx.isActive()) {
+            if (tx.getStatus() == TransactionStatus.ACTIVE) {
                 tx.commit();
             }
             session.close();
