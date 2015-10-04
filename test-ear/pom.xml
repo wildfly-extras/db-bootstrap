@@ -22,7 +22,7 @@
 	<parent>
 		<groupId>org.wildfly.extras.db_bootstrap</groupId>
 		<artifactId>db-bootstrap-subsystem-parent</artifactId>
-		<version>1.0.7</version>
+		<version>1.0.8</version>
 		<relativePath>../pom.xml</relativePath>
 	</parent>
 
@@ -43,7 +43,7 @@
 			            </goals>
 						<configuration>
 						    <finalName>wildfly-arquillian-integration-exploded-ear</finalName>
-							<version>6</version>
+							<version>7</version>
 							<generateApplicationXml>false</generateApplicationXml>
 							<modules>
 								<jarModule>
