@@ -108,7 +108,11 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
 
         if (deploymentName.equals(filename)) {
             long before = System.currentTimeMillis();
-            scanForAnnotationsAndProcessAnnotatedFiles(deploymentUnit);
+            try {
+                scanForAnnotationsAndProcessAnnotatedFiles(deploymentUnit);
+            } catch (Exception e) {
+                throw new DeploymentUnitProcessingException(e);
+            }
             long duration = System.currentTimeMillis() - before;
             DbBootstrapLogger.ROOT_LOGGER.infof("Database bootstrapping took [%s] ms", duration);
         } else {
@@ -116,7 +120,7 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
         }
     }
 
-    private void scanForAnnotationsAndProcessAnnotatedFiles(DeploymentUnit deploymentUnit) {
+    private void scanForAnnotationsAndProcessAnnotatedFiles(DeploymentUnit deploymentUnit) throws Exception {
         ResourceRoot deploymentRoot = deploymentUnit.getAttachment(Attachments.DEPLOYMENT_ROOT);
 
         DbBootstrapLogger.ROOT_LOGGER.tracef("match on %s", deploymentRoot.getRoot().getPathName());
@@ -135,6 +139,7 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
             }
         } catch (Exception e) {
             DbBootstrapLogger.ROOT_LOGGER.error("Unable to process the internal jar files", e);
+            throw e;
         }
     }
 
@@ -262,6 +267,7 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
         } catch (Exception e) {
             DbBootstrapLogger.ROOT_LOGGER.error(String.format("Unable to invoke method %s ", method.getName()), e);
             tx.rollback();
+            throw e;
         } finally {
             if (tx.isActive()) {
                 tx.commit();
