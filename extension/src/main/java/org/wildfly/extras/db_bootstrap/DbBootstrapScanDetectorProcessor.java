@@ -38,6 +38,7 @@ import org.hibernate.Transaction;
 import org.hibernate.boot.registry.StandardServiceRegistry;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
+import org.hibernate.resource.transaction.spi.TransactionStatus;
 import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
 import org.jboss.as.server.deployment.DeploymentUnit;
@@ -269,7 +270,7 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
             tx.rollback();
             throw e;
         } finally {
-            if (tx.isActive()) {
+            if (tx.getStatus() == TransactionStatus.ACTIVE) {
                 tx.commit();
             }
             session.close();
