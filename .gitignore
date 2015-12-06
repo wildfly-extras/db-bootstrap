@@ -23,3 +23,9 @@ target/
 .classpath
 .settings/
 .project
+
+#IDEA
+.idea/
+**/*.iml
+#BUILD
+settings.xml
