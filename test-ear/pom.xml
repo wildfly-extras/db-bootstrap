@@ -43,8 +43,7 @@
 			            </goals>
 						<configuration>
 						    <finalName>wildfly-arquillian-integration-exploded-ear</finalName>
-							<version>6</version>
-							<generateApplicationXml>false</generateApplicationXml>
+							<version>7</version>
 							<modules>
 								<jarModule>
 									<groupId>org.wildfly.extras.db_bootstrap</groupId>

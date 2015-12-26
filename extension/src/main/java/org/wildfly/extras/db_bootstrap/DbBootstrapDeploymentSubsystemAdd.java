@@ -15,17 +15,13 @@
  */
 package org.wildfly.extras.db_bootstrap;
 
-import java.util.List;
-
 import org.jboss.as.controller.AbstractBoottimeAddStepHandler;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.ServiceVerificationHandler;
 import org.jboss.as.server.AbstractDeploymentChainStep;
 import org.jboss.as.server.DeploymentProcessorTarget;
 import org.jboss.as.server.deployment.Phase;
 import org.jboss.dmr.ModelNode;
-import org.jboss.msc.service.ServiceController;
 
 /**
  * @author Flemming Harms
@@ -34,7 +30,7 @@ import org.jboss.msc.service.ServiceController;
 class DbBootstrapDeploymentSubsystemAdd extends AbstractBoottimeAddStepHandler {
 
     @Override
-    protected void performBoottime(OperationContext context, ModelNode operation, ModelNode model, ServiceVerificationHandler verificationHandler, List<ServiceController<?>> newControllers) throws OperationFailedException {
+    protected void performBoottime(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
         DbBootstrapLogger.ROOT_LOGGER.subsystemStarted();
 
         context.addStep(new AbstractDeploymentChainStep() {

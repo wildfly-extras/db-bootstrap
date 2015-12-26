@@ -15,22 +15,17 @@
  */
 package org.wildfly.extras.db_bootstrap;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.jboss.as.controller.AbstractBoottimeAddStepHandler;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
-import org.jboss.as.controller.PathAddress;
-import org.jboss.as.controller.ServiceVerificationHandler;
-import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
-import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.server.AbstractDeploymentChainStep;
 import org.jboss.as.server.DeploymentProcessorTarget;
 import org.jboss.as.server.deployment.Phase;
 import org.jboss.dmr.ModelNode;
-import org.jboss.msc.service.ServiceController;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Frank Vissing
@@ -48,10 +43,7 @@ class DbBootstrapScanDetectorAdd extends AbstractBoottimeAddStepHandler {
     }
 
     @Override
-    protected void performBoottime(OperationContext context, ModelNode operation, ModelNode model,
-            ServiceVerificationHandler verificationHandler, List<ServiceController<?>> newControllers)
-            throws OperationFailedException {
-
+    protected void performBoottime(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
         String filename = model.get(DbBootstrapExtension.FILENAME_ATTR).asString();
         ModelNode filterOnNameAttributeModelNode = model.get(DbBootstrapExtension.FILTER_ON_NAME_ATTR);
 
@@ -60,32 +52,17 @@ class DbBootstrapScanDetectorAdd extends AbstractBoottimeAddStepHandler {
             filterOnNames.addAll(filterOnNameAttributeModelNode.asList());
         }
 
-        final PathAddress myModelsAddress = PathAddress.pathAddress(operation.get(ModelDescriptionConstants.OP_ADDR));
-        ModelNode myFullModelWithChildren = Resource.Tools.readModel(context.readResourceFromRoot(myModelsAddress, true), -1);
-        ModelNode myClassModelNodes = myFullModelWithChildren.get(DbBootstrapExtension.CLASS);
-        List<String> classes = new LinkedList<String>();
-        if (myClassModelNodes.isDefined()) {
-            for (ModelNode classModelNode : myClassModelNodes.asList()) {
-                if (classModelNode.isDefined()) {
-                    String className = classModelNode.get(0).get(DbBootstrapExtension.CLASSNAME_ATTR).asString();
-                    classes.add(className);
-                }
-            }
-        }
-
-        context.addStep(new DbBootstrapDeploymentChainStep(filterOnNames, filename, classes), OperationContext.Stage.RUNTIME);
+        context.addStep(new DbBootstrapDeploymentChainStep(filterOnNames, filename), OperationContext.Stage.RUNTIME);
     }
 
     private final class DbBootstrapDeploymentChainStep extends AbstractDeploymentChainStep {
 
         private final List<ModelNode> filterOnNames;
         private final String filename;
-        private final List<String> classes;
 
         DbBootstrapDeploymentChainStep(List<ModelNode> filterOnNames, String filename, List<String> classes) {
             this.filterOnNames = filterOnNames;
             this.filename = filename;
-            this.classes = classes;
         }
 
         @Override
@@ -98,7 +75,7 @@ class DbBootstrapScanDetectorAdd extends AbstractBoottimeAddStepHandler {
                 String subsystemName = DbBootstrapExtension.SUBSYSTEM_NAME;
                 int priority = Phase.PARSE_WEB_DEPLOYMENT + priorityDelta.getAndIncrement();
                 DbBootstrapScanDetectorProcessor processor;
-                processor = new DbBootstrapScanDetectorProcessor(filename, filterOnNames, classes);
+                processor = new DbBootstrapScanDetectorProcessor(filename, filterOnNames);
                 processorTarget.addDeploymentProcessor(subsystemName, Phase.PARSE, priority, processor);
 
             } catch (Exception e) {

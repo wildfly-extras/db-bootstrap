@@ -18,14 +18,15 @@
 -->
 <arquillian xmlns="http://jboss.org/schema/arquillian" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jboss.org/schema/arquillian http://jboss.org/schema/arquillian/arquillian_1_0.xsd">
 
-    <container qualifier="wildfly-managed-8.1.0" default="true">
+    <container qualifier="wildfly-managed-9.0.2" default="true">
         <configuration>
             <property name="jbossHome">${wildfly.home}</property>
+            <property name="modulePath">${wildfly.home}/modules</property>
             <property name="serverConfig">${jboss.server.config.file.name}</property>
             <property name="allowConnectingToRunningServer">false</property>
             <property name="managementAddress">127.0.0.1</property>
             <property name="managementPort">9990</property>
-            <property name="javaVmArguments">-agentlib:jdwp=transport=dt_socket,address=8787,server=y,suspend=n</property>
+            <!-- property name="javaVmArguments">-agentlib:jdwp=transport=dt_socket,address=8787,server=y,suspend=y</property -->
         </configuration>
     </container>
 </arquillian>
