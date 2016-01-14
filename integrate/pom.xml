@@ -22,7 +22,7 @@
     <parent>
         <groupId>org.wildfly.extras.db_bootstrap</groupId>
         <artifactId>db-bootstrap-subsystem-parent</artifactId>
-        <version>1.0.8</version>
+        <version>1.0.9</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -34,7 +34,7 @@
     <properties>
         <project.root>${basedir}/..</project.root>
         <version.rhino.js>1.7R2</version.rhino.js>
-        <version.org.jboss.jandex>2.0.0.CR1</version.org.jboss.jandex>
+        <version.org.jboss.jandex>2.0.0.Final</version.org.jboss.jandex>
         <version.org.apache.ant>1.9.6</version.org.apache.ant>
         <module.dest.directory>${wildfly.home}/modules/org/wildfly/extras/db_bootstrap/main</module.dest.directory>
         <!-- generated configs root dirs -->
