@@ -2,8 +2,8 @@
 
 <module xmlns="urn:jboss:module:1.3" name="org.wildfly.extras.db_bootstrap">
     <resources>
-        <artifact name="org.hibernate:hibernate-core:5.0.6.Final"/>
-        <artifact name="org.hibernate:hibernate-validator-annotation-processor:5.2.2.Final" />
+        <artifact name="org.hibernate:hibernate-core:5.0.7.Final"/>
+        <artifact name="org.hibernate:hibernate-validator-annotation-processor:5.2.3.Final" />
         <artifact name="org.hibernate.common:hibernate-commons-annotations:5.0.1.Final" />
         <!-- Insert resources here -->
     </resources>
