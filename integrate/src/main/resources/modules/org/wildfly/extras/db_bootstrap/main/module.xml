@@ -2,15 +2,16 @@
 
 <module xmlns="urn:jboss:module:1.3" name="org.wildfly.extras.db_bootstrap">
     <resources>
-        <artifact name="org.hibernate:hibernate-core:4.3.5.Final"/>
-        <artifact name="org.hibernate:hibernate-validator-annotation-processor:5.1.0.Final" />
-        <artifact name="org.hibernate.common:hibernate-commons-annotations:4.0.4.Final" />
+        <artifact name="org.hibernate:hibernate-core:5.0.7.Final"/>
+        <artifact name="org.hibernate:hibernate-validator-annotation-processor:5.2.3.Final" />
+        <artifact name="org.hibernate.common:hibernate-commons-annotations:5.0.1.Final" />
         <!-- Insert resources here -->
     </resources>
 
     <dependencies>
        <module name="javax.annotation.api"/>
         <module name="javax.api"/>
+        <module name="javax.xml.bind.api"/>
         <module name="org.jboss.jandex"/>
         <module name="org.jboss.staxmapper"/>
         <module name="org.jboss.as.controller"/>

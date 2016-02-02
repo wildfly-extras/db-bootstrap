@@ -18,6 +18,7 @@ package org.wildfly.extras.db_bootstrap.databasebootstrap;
 import org.hibernate.SQLQuery;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+import org.hibernate.resource.transaction.spi.TransactionStatus;
 import org.wildfly.extras.db_bootstrap.dbutils.HibernateTestUtil;
 
 /**
@@ -72,7 +73,7 @@ public class PersonSchema {
             callback.execute(session);
             tx.commit();
         } finally {
-            if (tx.isActive()) {
+            if (tx.getStatus() == TransactionStatus.ACTIVE) {
                 tx.rollback();
             }
             if (session != null) {
