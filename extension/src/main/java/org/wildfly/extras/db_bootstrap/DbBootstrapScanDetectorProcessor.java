@@ -73,9 +73,8 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
     private final String filename;
     private final BootstrapProvider provider;
     private final FilenameContainFilter filterOnJarFilename;
-    private final List<String> explicitlyListedDatabaseBootstrapperClassNames;
 
-    public DbBootstrapScanDetectorProcessor(final String filename, final List<ModelNode> filterOnName) {
+    public DbBootstrapScanDetectorProcessor(final String filename, final List<ModelNode> filterOnName, final BootstrapProvider provider) {
         this.filename = filename;
         this.provider = provider;
         List<String> filter = new ArrayList<>(filterOnName.size());
@@ -247,6 +246,7 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
      *
      * @param deploymentRoot
      * @param filter - true if the jar filename filter should be applied
+     * @param filterOnJarFilename
      * @return A arrays of {@link URL}
      * @throws DeploymentUnitProcessingException
      * @throws IOException

@@ -61,7 +61,7 @@ class DbBootstrapScanDetectorAdd extends AbstractBoottimeAddStepHandler {
         private final List<ModelNode> filterOnNames;
         private final String filename;
 
-        DbBootstrapDeploymentChainStep(List<ModelNode> filterOnNames, String filename, List<String> classes) {
+        DbBootstrapDeploymentChainStep(List<ModelNode> filterOnNames, String filename) {
             this.filterOnNames = filterOnNames;
             this.filename = filename;
         }

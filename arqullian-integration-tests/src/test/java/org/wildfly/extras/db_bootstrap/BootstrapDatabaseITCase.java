@@ -80,9 +80,19 @@ public class BootstrapDatabaseITCase {
     
     @Deployment(order = 2, name = "without-hibernate-cfg")
     public static Archive<?> deployWithOutHibernate() throws Exception {
-        WebArchive war = ShrinkWrap.create(WebArchive.class, ARCHIVE_NAME + "-no-hibernate.war");
+        return archiveWithoutHibernate("-no-hibernate.war", DatabaseBootstrapNoCfgFileTester.class);
+    }
+
+    @Deployment(order = 3, name = "with-explicitly-listed-classes")
+    public static Archive<?> deployWithExplicitlyListedClasses() throws Exception {
+        return archiveWithoutHibernate("-with-explicitly-listed-classes.war", DatabaseBootstrapWithDuke.class, DatabaseBootstrapWithTux.class);
+    }
+
+    private static WebArchive archiveWithoutHibernate(String suffix, Class<?> ... bootstrapClasses) {
+        WebArchive war = ShrinkWrap.create(WebArchive.class, ARCHIVE_NAME + suffix);
         JavaArchive lib = ShrinkWrap.create(JavaArchive.class, "bootstrap-no-hibernate.jar");
-        lib.addClasses(DatabaseBootstrapNoCfgFileTester.class);
+        lib.addClass(PersonSchema.class);
+        lib.addClasses(bootstrapClasses);
         lib.addClasses(HibernateTestUtil.class);
         addBaseResources(lib);
         war.addAsLibraries(lib);
