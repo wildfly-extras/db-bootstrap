@@ -62,6 +62,7 @@ public class DbBootstrapExtension implements Extension {
     @Override
     public void initializeParsers(ExtensionParsingContext context) {
         context.setSubsystemXmlMapping(SUBSYSTEM_NAME, Namespace.DB_BOOTSTRAP_1_0.getUriString(), DbBootstrapSubsystemParser.INSTANCE);
+        context.setSubsystemXmlMapping(SUBSYSTEM_NAME, Namespace.DB_BOOTSTRAP_2_0.getUriString(), DbBootstrapSubsystemParser2_0.INSTANCE);
     }
 
     @Override

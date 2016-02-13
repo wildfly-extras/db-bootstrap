@@ -22,7 +22,6 @@
         <module name="org.jboss.msc"/>
         <module name="org.jboss.vfs"/>
         <module name="org.jboss.logging"/>
-        <module name="org.scannotation.scannotation" />
 
         <!-- user modules for the plug-in -->
         <module name="org.javassist"/>

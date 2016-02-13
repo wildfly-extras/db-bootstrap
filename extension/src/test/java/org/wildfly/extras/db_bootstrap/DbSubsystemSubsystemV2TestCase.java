@@ -20,9 +20,9 @@ import org.junit.Test;
 
 import java.io.IOException;
 
-public class DbSubsystemSubsystemTestCase extends AbstractSubsystemBaseTest {
+public class DbSubsystemSubsystemV2TestCase extends AbstractSubsystemBaseTest {
 
-    public DbSubsystemSubsystemTestCase() {
+    public DbSubsystemSubsystemV2TestCase() {
         super(DbBootstrapExtension.SUBSYSTEM_NAME, new DbBootstrapExtension());
     }
 

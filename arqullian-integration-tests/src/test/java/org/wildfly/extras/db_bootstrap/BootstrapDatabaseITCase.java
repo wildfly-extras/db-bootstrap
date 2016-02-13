@@ -15,17 +15,6 @@
  */
 package org.wildfly.extras.db_bootstrap;
 
-import static org.hamcrest.CoreMatchers.hasItems;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
-
-import java.util.Arrays;
-import java.util.List;
-
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.persistence.Query;
-
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.OperateOnDeployment;
 import org.jboss.arquillian.junit.Arquillian;
@@ -46,6 +35,15 @@ import org.wildfly.extras.db_bootstrap.databasebootstrap.DatabaseBootstrapWithDu
 import org.wildfly.extras.db_bootstrap.databasebootstrap.DatabaseBootstrapWithTux;
 import org.wildfly.extras.db_bootstrap.databasebootstrap.PersonSchema;
 import org.wildfly.extras.db_bootstrap.dbutils.HibernateTestUtil;
+
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import javax.persistence.Query;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.junit.Assert.assertThat;
 
 /**
  * @author Flemming Harms 
@@ -82,19 +80,9 @@ public class BootstrapDatabaseITCase {
     
     @Deployment(order = 2, name = "without-hibernate-cfg")
     public static Archive<?> deployWithOutHibernate() throws Exception {
-        return archiveWithoutHibernate("-no-hibernate.war", DatabaseBootstrapNoCfgFileTester.class);
-    }
-
-    @Deployment(order = 3, name = "with-explicitly-listed-classes")
-    public static Archive<?> deployWithExplicitlyListedClasses() throws Exception {
-        return archiveWithoutHibernate("-with-explicitly-listed-classes.war", DatabaseBootstrapWithDuke.class, DatabaseBootstrapWithTux.class);
-    }
-
-    private static WebArchive archiveWithoutHibernate(String suffix, Class<?> ... bootstrapClasses) {
-        WebArchive war = ShrinkWrap.create(WebArchive.class, ARCHIVE_NAME + suffix);
+        WebArchive war = ShrinkWrap.create(WebArchive.class, ARCHIVE_NAME + "-no-hibernate.war");
         JavaArchive lib = ShrinkWrap.create(JavaArchive.class, "bootstrap-no-hibernate.jar");
-        lib.addClass(PersonSchema.class);
-        lib.addClasses(bootstrapClasses);
+        lib.addClasses(DatabaseBootstrapNoCfgFileTester.class);
         lib.addClasses(HibernateTestUtil.class);
         addBaseResources(lib);
         war.addAsLibraries(lib);
@@ -115,13 +103,12 @@ public class BootstrapDatabaseITCase {
         WebArchive warLib = ShrinkWrap.create(WebArchive.class, "bootstrap.war");
         warLib.addClasses(DatabaseBootstrapWarTester.class);
         warLib.addClasses(HibernateTestUtil.class);
-        
-        JavaArchive lib = ShrinkWrap.create(JavaArchive.class, "bootstrap.jar");
-        addBaseResources(lib);
-        
+        warLib.addClasses(BootstrapDatabaseITCase.class);
+        warLib.addAsWebInfResource("META-INF/persistence.xml", "classes/META-INF/persistence.xml");
+        warLib.addAsWebInfResource(EmptyAsset.INSTANCE, ArchivePaths.create("classes/META-INF/beans.xml"));
+        warLib.addAsWebInfResource(new StringAsset(hibernate_cfg_xml), "classes/META-INF/hibernate.cfg.xml");
         EnterpriseArchive ear = ShrinkWrap.create(EnterpriseArchive.class, ARCHIVE_NAME + "-war-inside-ear.ear");
         ear.addAsModule(warLib);
-        ear.addAsLibraries(lib);
         return ear;
     }
     
@@ -167,13 +154,4 @@ public class BootstrapDatabaseITCase {
         assertThat(result, hasItems((Object)"Batman","Robin"));
     }
 
-    @Test
-    @OperateOnDeployment("with-explicitly-listed-classes")
-    public void testRunBootstrapWithExplicitlyListedDatabaseBootstrapClasses() throws Exception {
-        Query dukeQuery = testEm.createNativeQuery("select * from person where PersonId = '9'");
-        List<Object> dukeResult = Arrays.asList((Object[]) dukeQuery.getSingleResult());
-        assertThat(dukeResult, hasItems((Object)"Duke","Javasson"));
-        Query tuxQuery = testEm.createNativeQuery("select * from person where PersonId = '10'");
-        assertThat(tuxQuery.getResultList().isEmpty(), is(true));
-    }
 }

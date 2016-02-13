@@ -13,8 +13,9 @@ This extension is currently aimed at Hibernate users. But it can also be used wi
 
 Prerequisite
 ---------------
-JDK 7
+JDK 8
 Maven 3.1.1
+Wildfly 9
 
 Build the module
 ---------------

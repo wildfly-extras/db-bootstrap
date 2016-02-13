@@ -22,6 +22,7 @@ import org.jboss.as.server.AbstractDeploymentChainStep;
 import org.jboss.as.server.DeploymentProcessorTarget;
 import org.jboss.as.server.deployment.Phase;
 import org.jboss.dmr.ModelNode;
+import org.wildfly.extras.db_bootstrap.providers.HibernateBootstrapProvider;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -47,7 +48,7 @@ class DbBootstrapScanDetectorAdd extends AbstractBoottimeAddStepHandler {
         String filename = model.get(DbBootstrapExtension.FILENAME_ATTR).asString();
         ModelNode filterOnNameAttributeModelNode = model.get(DbBootstrapExtension.FILTER_ON_NAME_ATTR);
 
-        List<ModelNode> filterOnNames = new LinkedList<ModelNode>();
+        List<ModelNode> filterOnNames = new LinkedList<>();
         if (filterOnNameAttributeModelNode.isDefined()) {
             filterOnNames.addAll(filterOnNameAttributeModelNode.asList());
         }
@@ -73,9 +74,10 @@ class DbBootstrapScanDetectorAdd extends AbstractBoottimeAddStepHandler {
 
             try {
                 String subsystemName = DbBootstrapExtension.SUBSYSTEM_NAME;
-                int priority = Phase.PARSE_WEB_DEPLOYMENT + priorityDelta.getAndIncrement();
+                int priority = Phase.PARSE_COMPOSITE_ANNOTATION_INDEX + 10 + priorityDelta.getAndIncrement();
                 DbBootstrapScanDetectorProcessor processor;
-                processor = new DbBootstrapScanDetectorProcessor(filename, filterOnNames);
+
+                processor = new DbBootstrapScanDetectorProcessor(filename, filterOnNames, new HibernateBootstrapProvider());
                 processorTarget.addDeploymentProcessor(subsystemName, Phase.PARSE, priority, processor);
 
             } catch (Exception e) {

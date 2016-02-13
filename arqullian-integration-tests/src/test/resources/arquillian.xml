@@ -26,7 +26,7 @@
             <property name="allowConnectingToRunningServer">false</property>
             <property name="managementAddress">127.0.0.1</property>
             <property name="managementPort">9990</property>
-            <!-- property name="javaVmArguments">-agentlib:jdwp=transport=dt_socket,address=8787,server=y,suspend=y</property -->
+            <!-- property name="javaVmArguments">-agentlib:jdwp=transport=dt_socket,address=8787,server=y,suspend=n</property -->
         </configuration>
     </container>
 </arquillian>

@@ -30,7 +30,7 @@ import org.jboss.logging.annotations.MessageLogger;
  * @author Flemming Harms
  */
 @MessageLogger(projectCode = "DB_BOOTSTRAP")
-interface DbBootstrapLogger extends BasicLogger {
+public interface DbBootstrapLogger extends BasicLogger {
 
     /**
      * A root logger with the category of the package name.

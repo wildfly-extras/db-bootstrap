@@ -15,53 +15,53 @@
  */
 package org.wildfly.extras.db_bootstrap;
 
-import java.io.IOException;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Method;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeSet;
-
 import org.hibernate.Session;
-import org.hibernate.SessionFactory;
-import org.hibernate.Transaction;
-import org.hibernate.boot.registry.StandardServiceRegistry;
-import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
-import org.hibernate.cfg.Configuration;
 import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.as.server.deployment.DeploymentUnitProcessor;
+import org.jboss.as.server.deployment.annotation.CompositeIndex;
 import org.jboss.as.server.deployment.module.ResourceRoot;
 import org.jboss.dmr.ModelNode;
+import org.jboss.jandex.AnnotationInstance;
+import org.jboss.jandex.AnnotationValue;
+import org.jboss.jandex.ClassInfo;
+import org.jboss.jandex.DotName;
+import org.jboss.jandex.MethodInfo;
 import org.jboss.modules.ModuleLoadException;
 import org.jboss.vfs.VFSUtils;
 import org.jboss.vfs.VirtualFile;
+import org.jboss.vfs.VirtualFileFilter;
+import org.jboss.vfs.VirtualFileFilterWithAttributes;
 import org.jboss.vfs.VisitorAttributes;
-import org.scannotation.AnnotationDB;
 import org.wildfly.extras.db_bootstrap.annotations.BootstrapDatabase;
 import org.wildfly.extras.db_bootstrap.annotations.BootstrapSchema;
 import org.wildfly.extras.db_bootstrap.annotations.UpdateSchema;
 import org.wildfly.extras.db_bootstrap.matchfilter.FilenameContainFilter;
+import org.wildfly.extras.db_bootstrap.providers.BootstrapProvider;
+
+import java.io.IOException;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Stream;
 
 /**
  * Reacts on the deployment process on the specified archives in the configuration. It scan all JAR archives for
- * {@link BootstrapDatabase} annotation to locate database bootstrapping classes. <br>
- * <br>
+ * {@link org.wildfly.extras.db_bootstrap.annotations.BootstrapDatabase} annotation to locate database
+ * bootstrapping classes. <br>
  *
  * By default it all children in the archive is added to a new class loader and passed to the Hibernate
- * {@link org.hibernate.boot.registry.internal.BootstrapServiceRegistryImpl} for creating a new {@link SessionFactory}
+ * {@link org.hibernate.boot.registry.internal.BootstrapServiceRegistryImpl} for creating a new
+ * {@link org.hibernate.SessionFactory}
  *
  * @author Frank Vissing (frank.vissing@schneider-electric.com)
  * @author Flemming Harms (flemming.harms@gmail.com)
@@ -70,22 +70,14 @@ import org.wildfly.extras.db_bootstrap.matchfilter.FilenameContainFilter;
  */
 class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
 
-    /**
-     * Defines the prefix of the system property names that can be used to set and/or override the hibernate properties defined
-     * in user-space hibernate configuration files (referenced by the {@link BootstrapDatabase} annotation). <br>
-     * <br>
-     * For example: Setting the system property <code>dbbootstrap.foohibcfg.connection.url</code> will override any existing
-     * hibernate configuration property <code>connection.url</code> in the hibernate configuration xml file referenced by the
-     * {@link BootstrapDatabase} annotation with the name <code>foohibcfg</code>.
-     */
-    public static final String DBBOOTSTRAP_SYSTEM_PROPERTY_PREFIX = "dbbootstrap";
     private final String filename;
+    private final BootstrapProvider provider;
     private final FilenameContainFilter filterOnJarFilename;
     private final List<String> explicitlyListedDatabaseBootstrapperClassNames;
 
-    public DbBootstrapScanDetectorProcessor(final String filename, final List<ModelNode> filterOnName, List<String> explicitlyListedDatabaseBootstrapperClassNames) {
+    public DbBootstrapScanDetectorProcessor(final String filename, final List<ModelNode> filterOnName) {
         this.filename = filename;
-        this.explicitlyListedDatabaseBootstrapperClassNames = explicitlyListedDatabaseBootstrapperClassNames;
+        this.provider = provider;
         List<String> filter = new ArrayList<>(filterOnName.size());
 
         for (ModelNode modelNode : filterOnName) {
@@ -94,7 +86,9 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
 
         this.filterOnJarFilename = new FilenameContainFilter(filter, VisitorAttributes.RECURSE);
 
-        DbBootstrapLogger.ROOT_LOGGER.infof("Archive: [%s], jar-filter: %s, classes: %s", this.filename, filterOnJarFilename.toString(), explicitlyListedDatabaseBootstrapperClassNames.toString());
+        if (!filterOnName.isEmpty()) {
+            DbBootstrapLogger.ROOT_LOGGER.infof("Archive : %s jar-filter %s", this.filename, filterOnJarFilename.toString());
+        }
     }
 
     @Override
@@ -103,109 +97,90 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
         String deploymentName = deploymentUnit.getName();
 
         if (isSubdeployment(deploymentUnit)) {
-            return;
+            deploymentName = deploymentUnit.getParent().getName();
         }
 
         if (deploymentName.equals(filename)) {
-            long before = System.currentTimeMillis();
-            try {
-                scanForAnnotationsAndProcessAnnotatedFiles(deploymentUnit);
-            } catch (Exception e) {
-                throw new DeploymentUnitProcessingException(e);
-            }
-            long duration = System.currentTimeMillis() - before;
-            DbBootstrapLogger.ROOT_LOGGER.infof("Database bootstrapping took [%s] ms", duration);
+            scanForAnnotationsAndProcessAnnotatedFiles(deploymentUnit,filterOnJarFilename);
         } else {
             DbBootstrapLogger.ROOT_LOGGER.tracef("%s did not match %s", filename, deploymentName);
         }
     }
 
-    private void scanForAnnotationsAndProcessAnnotatedFiles(DeploymentUnit deploymentUnit) throws Exception {
-        ResourceRoot deploymentRoot = deploymentUnit.getAttachment(Attachments.DEPLOYMENT_ROOT);
+    private void scanForAnnotationsAndProcessAnnotatedFiles(DeploymentUnit deploymentUnit, VirtualFileFilterWithAttributes filterOnJarFilename) {
+        DotName dotName = DotName.createSimple(BootstrapDatabase.class.getName());
+        CompositeIndex index = deploymentUnit.getAttachment(Attachments.COMPOSITE_ANNOTATION_INDEX);
+        if (index == null) {
+            return;
+        }
 
-        DbBootstrapLogger.ROOT_LOGGER.tracef("match on %s", deploymentRoot.getRoot().getPathName());
+        List<AnnotationInstance> indexAnnotations = index.getAnnotations(dotName);
+        if (indexAnnotations.isEmpty()) {
+            return;
+        }
+
+        ResourceRoot deploymentRoot = deploymentUnit.getAttachment(Attachments.DEPLOYMENT_ROOT);
+        VirtualFile root = deploymentRoot.getRoot();
+
+        DbBootstrapLogger.ROOT_LOGGER.tracef("match on %s", root.getPathName());
         try {
-            Set<URL> classLoaderurls = getJarList(deploymentRoot.getRoot(), false);
+            Set<URL> classLoaderurls = getJarList(root, false, filterOnJarFilename);
             if (classLoaderurls.size() > 0) {
                 ClassLoader classLoader = addDynamicResources(classLoaderurls, deploymentUnit);
-                boolean hasExplicitlyListedDatabaseBootstrapperClasses = !explicitlyListedDatabaseBootstrapperClassNames.isEmpty();
-                if (hasExplicitlyListedDatabaseBootstrapperClasses) {
-                    DbBootstrapLogger.ROOT_LOGGER.tracef("Using manually configured @%s classes: %s", BootstrapDatabase.class.getSimpleName(), explicitlyListedDatabaseBootstrapperClassNames);
-                    processAnnotatedFiles(classLoader, explicitlyListedDatabaseBootstrapperClassNames);
-                } else {
-                    DbBootstrapLogger.ROOT_LOGGER.tracef("Scanning for @%s classes", BootstrapDatabase.class.getSimpleName());
-                    scanForAnnotationsAndProcessAnnotatedFiles(classLoader, classLoaderurls, deploymentRoot.getRoot());
-                }
-            }
+                processAnnotatedClasses(indexAnnotations, classLoader);
+             }
         } catch (Exception e) {
             DbBootstrapLogger.ROOT_LOGGER.error("Unable to process the internal jar files", e);
-            throw e;
         }
     }
 
-    private void scanForAnnotationsAndProcessAnnotatedFiles(final ClassLoader classLoader, Set<URL> classLoaderurls, VirtualFile deploymentRoot) throws Exception {
-        AnnotationDB db;
-        if (filterOnJarFilename == null) {
-            db = scanForAnnotation(classLoaderurls);
-        } else {
-            db = scanForAnnotation(getJarList(deploymentRoot, true));
-        }
-        Set<String> databaseBoostrapperClasses = db.getAnnotationIndex().get(BootstrapDatabase.class.getName());
-        processAnnotatedFiles(classLoader, databaseBoostrapperClasses);
-    }
-
-    private void processAnnotatedFiles(final ClassLoader classLoader, Collection<String> databaseBoostrapperClasses) throws Exception {
-        if (databaseBoostrapperClasses != null && databaseBoostrapperClasses.size() > 0) {
-            Map<BootstrapDatabase, Class<?>> bootstrapMap = new HashMap<BootstrapDatabase, Class<?>>(databaseBoostrapperClasses.size());
-            for (String clazz : databaseBoostrapperClasses) {
-                try {
-                    Class<?> annotatedClazz = Class.forName(clazz, true, classLoader);
-                    BootstrapDatabase dbBoostrapper = annotatedClazz.getAnnotation(BootstrapDatabase.class);
-                    bootstrapMap.put(dbBoostrapper, annotatedClazz);
-                } catch (ClassNotFoundException e) {
-                    DbBootstrapLogger.ROOT_LOGGER.error("Unable to find class", e);
-                }
-            }
-            processAnnotatedClasses(bootstrapMap, classLoader);
-        } else {
-            DbBootstrapLogger.ROOT_LOGGER.debug("@BootstrapDatabase annotation was not located in the archive");
-        }
-    }
 
     /**
-     * Process a sorted list of bootstrap classes, by calling method's annotated with {@link BootstrapSchema} first and second
-     * {@link UpdateSchema}.
+     * Process a sorted list of bootstrap classes, by calling method's annotated with
+     * {@link org.wildfly.extras.db_bootstrap.annotations.BootstrapSchema} first and second
+     * {@link org.wildfly.extras.db_bootstrap.annotations.UpdateSchema}.
      *
-     * @param bootstrapMap
+     * @param bootstrapList - List of all the scanned AnnotationInstance
      * @param classLoader
      * @throws Exception
      */
-    private void processAnnotatedClasses(final Map<BootstrapDatabase, Class<?>> bootstrapMap, final ClassLoader classLoader)
+    private void processAnnotatedClasses(final List<AnnotationInstance> bootstrapList, final ClassLoader classLoader)
             throws Exception {
-        List<Entry<BootstrapDatabase, Class<?>>> sortedList = new ArrayList<Entry<BootstrapDatabase, Class<?>>>(bootstrapMap
-                .entrySet().size());
-        sortedList.addAll(bootstrapMap.entrySet());
 
-        Collections.sort(sortedList, new BootstrapperSorter());
-        // Run all BootstrapSchema annotations
-        for (Entry<BootstrapDatabase, Class<?>> entry : sortedList) {
-            DbBootstrapLogger.ROOT_LOGGER.infof("Executing Bootstrap Schema method for %s %s",entry.getKey().name(),entry.getValue().getName());
-            executeMethod(entry.getValue(), entry.getKey(), BootstrapSchema.class, classLoader);
-        }
+        DotName bootstrapSchemaMethod = DotName.createSimple(BootstrapSchema.class.getName());
+        DotName updateSchemaMethod = DotName.createSimple(UpdateSchema.class.getName());
 
-        // Run all UpgradeSchema annotations
-        for (Entry<BootstrapDatabase, Class<?>> entry : sortedList) {
-            DbBootstrapLogger.ROOT_LOGGER.infof("Executing Update Schema method for %s %s",entry.getKey().name(),entry.getValue().getName());
-            executeMethod(entry.getValue(), entry.getKey(), UpdateSchema.class, classLoader);
-        }
+        bootstrapList
+                .stream()
+                .sorted(new BootstrapperSorter())
+                .forEachOrdered(a -> {
+                    try {
+                        DbBootstrapLogger.ROOT_LOGGER.infof("Executing Bootstrap Schema method for %s",a.toString());
+                        executeMethod(a, bootstrapSchemaMethod, classLoader);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+
+        bootstrapList
+                .stream()
+                .sorted(new BootstrapperSorter())
+                .forEachOrdered(a -> {
+                    try {
+                        DbBootstrapLogger.ROOT_LOGGER.infof("Executing Update Schema method for %s",a.toString());
+                        executeMethod(a, updateSchemaMethod, classLoader);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                });
     }
 
-    private static class BootstrapperSorter implements Comparator<Entry<BootstrapDatabase, Class<?>>> {
+    private static class BootstrapperSorter implements Comparator<AnnotationInstance> {
 
         @Override
-        public int compare(Entry<BootstrapDatabase, Class<?>> o1, Entry<BootstrapDatabase, Class<?>> o2) {
-            int priority1 = o1.getKey().priority();
-            int priority2 = o2.getKey().priority();
+        public int compare(AnnotationInstance o1, AnnotationInstance o2) {
+            int priority1 = o1.value("priority").asInt();
+            int priority2 = o2.value("priority").asInt();
             if (priority1 == priority2) {
                 return 0;
             }
@@ -217,138 +192,54 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
      * Execute the method annotated with specified class. If the annotated method has parameter signature {@link Session} it
      * will create a session a pass it as parameter.
      *
-     * @param annotatedClazz - The bootstrap class to execute the method on
-     * @param bootstrapDatabaseAnnotation - The configuration for creating a session
-     * @param annotation - The annotation the method need to be annotated with for calling
+     * @param annotatedInstance - The annotated class
+     * @param name - The name of the method annotated
      * @param classLoader - The class loader
      * @throws Exception
      */
-    private <T extends Annotation> void executeMethod(final Class<?> annotatedClazz,
-            final BootstrapDatabase bootstrapDatabaseAnnotation, final Class<T> annotation, final ClassLoader classLoader)
+    private <T extends Annotation> void executeMethod(final AnnotationInstance annotatedInstance, final DotName name, final ClassLoader classLoader)
             throws Exception {
-        Method[] methods = annotatedClazz.getDeclaredMethods();
-        for (Method method : methods) {
-            method.setAccessible(true);
-            if (method.getAnnotation(annotation) != null) {
-                Class<?>[] parameterTypes = method.getParameterTypes();
-                boolean sessionParameter = false;
-                for (int i = 0; i < parameterTypes.length; i++) {
-                    if (parameterTypes[i].equals(Session.class)) {
-                        sessionParameter = true;
-                        break;
-                    }
-                }
-                Object bootstrapClass = annotatedClazz.newInstance();
-                if (sessionParameter) {
-                    invokeWithSession(bootstrapDatabaseAnnotation, classLoader, method, bootstrapClass);
-                } else {
-                    method.invoke(bootstrapClass);
-                }
-            }
-        }
+        ClassInfo classInfo = (ClassInfo) annotatedInstance.target();
+        classInfo.annotations().entrySet()
+                .stream()
+                .filter(annotationMap -> annotationMap.getKey().equals(name))
+                .flatMap(annotationInstanceList -> annotationInstanceList.getValue().stream())
+                .filter(methodInstance -> methodInstance.target() instanceof MethodInfo)
+                .map(methodTarget -> methodTarget.target())
+                .map(MethodInfo.class::cast)
+                .forEach(t -> {
+                    executeMethodWithParameters(annotatedInstance, classLoader,  t, (ClassInfo) annotatedInstance.target());
+
+                });
     }
 
-    /**
-     * Wrap transaction around the invoke with the {@link Session}, if any exception throw it roll back the tx otherwise commit
-     * the tx;
-     *
-     * @param bootstrapDatabaseAnnotation - the boostrap configuration source
-     * @param classLoader - The classloader to load the hibernate resources from
-     * @param method - the method to invoke
-     * @param bootstrapClass - the class to invoke the method on
-     * @throws Exception
-     */
-    private void invokeWithSession(final BootstrapDatabase bootstrapDatabaseAnnotation, final ClassLoader classLoader,
-            Method method, Object bootstrapClass) throws Exception {
-        Session session = createSession(bootstrapDatabaseAnnotation, classLoader);
-        Transaction tx = session.beginTransaction();
+    private void executeMethodWithParameters(AnnotationInstance annotatedInstance, ClassLoader classLoader, MethodInfo invoke, ClassInfo annotationTarget) {
+        String className = annotationTarget.name().toString();
         try {
-            method.invoke(bootstrapClass, session);
+            Class<?> clazz = Class.forName(className, true, classLoader);
+            Object bootstrapClass = clazz.newInstance();
+
+            DotName sessionName = DotName.createSimple("org.hibernate.Session");
+
+            boolean session = Stream.of(invoke.args())
+                    .filter(types -> types.name().equals(sessionName))
+                    .findFirst()
+                    .isPresent();
+
+            if (session) {
+                Method method = clazz.getMethod(invoke.name().toString(),Session.class);
+                String hibernateCfg = annotatedInstance.value("hibernateCfg").asString();
+                String prefix = Optional.ofNullable(annotatedInstance.value("name"))
+                        .map(AnnotationValue::asString)
+                        .orElse("");
+                provider.invokeWithParameters(prefix, hibernateCfg, bootstrapClass, classLoader, method);
+            } else {
+                Method method = clazz.getMethod(invoke.name().toString());
+                provider.invoke(method,bootstrapClass);
+            }
         } catch (Exception e) {
-            DbBootstrapLogger.ROOT_LOGGER.error(String.format("Unable to invoke method %s ", method.getName()), e);
-            tx.rollback();
-            throw e;
-        } finally {
-            if (tx.isActive()) {
-                tx.commit();
-            }
-            session.close();
-            session.getSessionFactory().close();
+            throw new RuntimeException(e);
         }
-    }
-
-    /**
-     * Create a {@link Session} based on the provided configuration file.
-     *
-     * @param bootstrapDatabaseAnnotation - bootstrap configuration source
-     * @param classLoader - class loader to use with the session factory
-     * @return {@link Session}
-     * @throws Exception
-     */
-    private Session createSession(final BootstrapDatabase bootstrapDatabaseAnnotation, final ClassLoader classLoader)
-            throws Exception {
-        URL resource = classLoader.getResource(bootstrapDatabaseAnnotation.hibernateCfg());
-        DbBootstrapLogger.ROOT_LOGGER.tracef("Using hibernate configuration file %s",
-                bootstrapDatabaseAnnotation.hibernateCfg());
-        Configuration configuration = new Configuration();
-        configuration.configure(resource); // configures settings from hibernate.cfg.xml
-        configureSettingsFromSystemProperties(bootstrapDatabaseAnnotation, configuration);
-        StandardServiceRegistry serviceRegistry = new StandardServiceRegistryBuilder().applySettings(
-                configuration.getProperties()).build();
-        SessionFactory sessionFactory = configuration.buildSessionFactory(serviceRegistry);
-        return sessionFactory.openSession();
-    }
-
-    /**
-     * Loads all <code>dbbootstrap.[user-space-cfg-name-here].[hibernate-property-name-here]</code> properties from system
-     * properties. <br>
-     * <br>
-     * Any existing hibernate properties with the same name (<code>[hibernate-property-name-here]</code> in above example) will
-     * be replaced by the matching system property. <br>
-     * <br>
-     *
-     * @param bootstrapDatabaseAnnotation - bootstrap configuration source
-     * @param configuration - the runtime hibernate configuration object
-     */
-    private void configureSettingsFromSystemProperties(BootstrapDatabase bootstrapDatabaseAnnotation,
-            Configuration configuration) {
-        String propertyPrefix = String.format("%s.%s", DBBOOTSTRAP_SYSTEM_PROPERTY_PREFIX, bootstrapDatabaseAnnotation.name());
-        DbBootstrapLogger.ROOT_LOGGER.tracef(
-                "Searching for system properties with prefix %s to set and/or override hibernate configuration properties",
-                propertyPrefix);
-        for (Entry<Object, Object> entrySet : (System.getProperties().entrySet())) {
-            if (entrySet.getKey().toString().startsWith(propertyPrefix)) {
-                String hibernatePropertyName = entrySet.getKey().toString().replace(String.format("%s.", propertyPrefix), "");
-                String oldHibernatePropertyValue = (configuration.getProperty(hibernatePropertyName) == null) ? " (New property)"
-                        : String.format(" (Replacing existing property with old value=%s)",
-                                configuration.getProperty(hibernatePropertyName));
-                String newHibernatePropertyValue = entrySet.getValue().toString();
-                DbBootstrapLogger.ROOT_LOGGER.tracef("Setting hibernate property: %s=%s%s", hibernatePropertyName,
-                        newHibernatePropertyValue, oldHibernatePropertyValue);
-                configuration.setProperty(hibernatePropertyName, newHibernatePropertyValue);
-            }
-        }
-    }
-
-    /**
-     * Scan all jar files for annotations and build a internal map with the result.
-     *
-     * @param jarList
-     * @throws IOException
-     * @throws URISyntaxException
-     */
-    private AnnotationDB scanForAnnotation(Set<URL> jars) throws IOException, URISyntaxException {
-        AnnotationDB db = new AnnotationDB();
-        db.setScanClassAnnotations(true);
-        db.setScanFieldAnnotations(false);
-        db.setScanMethodAnnotations(false);
-        db.setScanParameterAnnotations(false);
-        long before = System.currentTimeMillis();
-        DbBootstrapLogger.ROOT_LOGGER.tracef("Scanning for annotations started");
-        db.scanArchives(jars.toArray(new URL[0]));
-        long duration = System.currentTimeMillis() - before;
-        DbBootstrapLogger.ROOT_LOGGER.tracef("Scanning for annotations finished - took [%s] ms", duration);
-        return db;
     }
 
     /**
@@ -360,7 +251,7 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
      * @throws DeploymentUnitProcessingException
      * @throws IOException
      */
-    private Set<URL> getJarList(final VirtualFile deploymentRoot, boolean filter) throws DeploymentUnitProcessingException,
+    private Set<URL> getJarList(final VirtualFile deploymentRoot, boolean filter, VirtualFileFilter filterOnJarFilename) throws DeploymentUnitProcessingException,
             IOException {
         TreeSet<URL> uniqueArchiveUrls = new TreeSet<URL>(new UniqueArchiveUrlsComparator());
         List<VirtualFile> entries;
@@ -370,15 +261,11 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
         } else {
             entries = deploymentRoot.getChildrenRecursively();
         }
+
         for (VirtualFile virtualFile : entries) {
             try {
-                URL url = VFSUtils.getRootURL(virtualFile);
-                String lowerCasePathName = virtualFile.getPathName().trim().toLowerCase();
-                if (lowerCasePathName.endsWith(".war")) {
-                    uniqueArchiveUrls.add(new URL(url, "WEB-INF/classes/"));
-                } else if (lowerCasePathName.endsWith(".jar")) {
-                    uniqueArchiveUrls.add(url);
-                }
+                URL url = VFSUtils.getPhysicalURL(virtualFile);
+                uniqueArchiveUrls.add(url);
             } catch (NullPointerException ignore) {
                 // Happens if 'filename' refers to a dir or file, which is not an archive or which is not inside an archive.
                 // These can safely be ignored.
