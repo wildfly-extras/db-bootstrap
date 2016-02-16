@@ -110,7 +110,7 @@ public class BootstrapDatabaseITCase {
     
     @Deployment(order = 5, name = "war-inside-ear")
     public static Archive<?> deployWarInsideEar() throws Exception {
-        WebArchive warLib = ShrinkWrap.create(WebArchive.class, "bootstrap.war");
+            WebArchive warLib = ShrinkWrap.create(WebArchive.class, "bootstrap.war");
         warLib.addClasses(DatabaseBootstrapWarTester.class);
         warLib.addClasses(HibernateTestUtil.class);
         warLib.addClasses(BootstrapDatabaseITCase.class);

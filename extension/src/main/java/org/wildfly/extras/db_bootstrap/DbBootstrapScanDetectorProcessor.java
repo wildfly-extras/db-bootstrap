@@ -100,7 +100,14 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
         }
 
         if (deploymentName.equals(filename)) {
-            scanForAnnotationsAndProcessAnnotatedFiles(deploymentUnit,filterOnJarFilename);
+            long before = System.currentTimeMillis();
+            try {
+                scanForAnnotationsAndProcessAnnotatedFiles(deploymentUnit,filterOnJarFilename);
+            } catch (Exception e) {
+                throw new DeploymentUnitProcessingException(e);
+            }
+            long duration = System.currentTimeMillis() - before;
+            DbBootstrapLogger.ROOT_LOGGER.infof("Database bootstrapping took [%s] ms", duration);
         } else {
             DbBootstrapLogger.ROOT_LOGGER.tracef("%s did not match %s", filename, deploymentName);
         }
