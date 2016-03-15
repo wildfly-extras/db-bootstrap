@@ -19,8 +19,10 @@
 
     <property name="src.dir" value="src"/>
     <property name="module.repo.src.dir" value="${src.dir}/main/resources/modules"/>
+    <property name="module.layers.src.dir" value="${src.dir}/main/resources/layers"/>
     <property name="output.dir" value="target/extension-release"/>
-    <property name="module.repo.output.dir" value="${output.dir}/modules/"/>
+    <property name="module.dir" value="${output.dir}/modules/"/>
+    <property name="module.repo.output.dir" value="${module.dir}system/layers/db_bootstrap"/>
     <property name="module.xml" value="module.xml"/>
 
     <property name="bundle.repo.output.dir" value="${output.dir}/bundles"/>
@@ -44,6 +46,12 @@
             <!-- Copy the module.xml and other stuff to the output director -->
             <copy todir="${module.repo.output.dir}/${current.module.path}" >
                 <fileset dir="${module.repo.src.dir}/${current.module.path}">
+                    <include name="**"/>
+                </fileset>
+            </copy>
+
+            <copy todir="${module.dir}" >
+                <fileset dir="${module.layers.src.dir}/">
                     <include name="**"/>
                 </fileset>
             </copy>

@@ -1,63 +1,96 @@
-<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsd="http://www.w3.org/1999/XSL/Transform"
-           targetNamespace="urn:jboss:domain:db_bootstrap:2.0" xmlns="urn:jboss:domain:db-bootstrap:2.0"
-           elementFormDefault="qualified"
-           attributeFormDefault="unqualified" version="2.0">
-    <xs:element name="subsystem" type="subsystemType">
-        <xsd:complexType name="bootstrap-deployments">
-            <xsd:annotation>
-                <xsd:documentation>
-                    Enable database bootstrap sub system to run on the parse web deployment process and
-                    scan the listed archive files for the bootstrap annotation.
-                </xsd:documentation>
-            </xsd:annotation>
-            <xsd:sequence>
-                <xsd:element name="scan" type="scanType" minOccurs="0" />
-            </xsd:sequence>
-        </xsd:complexType>
-    </xs:element>
+<?xml version="1.0" encoding="UTF-8"?>
 
-    <xs:complexType name="hibernateProviderType">
-        <xsd:annotation>
-            <xsd:documentation>
-                 Still not implemented
-            </xsd:documentation>
-        </xsd:annotation>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:tns="urn:jboss:domain:db_bootstrap:2.0"
+           targetNamespace="urn:jboss:domain:db_bootstrap:2.0"
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified"
+           version="1.0">
+
+    <xs:element name="subsystem" type="tns:bootstrap-subsystem" />
+
+    <xs:complexType name="bootstrap-subsystem">
+        <xs:sequence>
+            <xs:element name="bootstrap-deployments" type="tns:bootstrapDeploymentsType" minOccurs="1" maxOccurs="unbounded"/>
+        </xs:sequence>
     </xs:complexType>
 
-    <xsd:complexType name="scanType">
-        <xsd:annotation>
-            <xsd:documentation>
+    <xs:complexType name="bootstrapDeploymentsType">
+        <xs:annotation>
+            <xs:documentation>
+                <![CDATA[
+                Enable database bootstrap sub system to run on the parse web deployment process and
+                scan the listed archive files for the bootstrap annotation.
+                ]]>
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="scan" type="tns:scanType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="name" use="required" type="xs:string">
+            <xs:annotation>
+                <xs:documentation>
+                    <![CDATA[
+                    A unique name that define the bootstrap-deployments element.
+                    ]]>
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+
+
+    <xs:complexType name="scanType">
+        <xs:annotation>
+            <xs:documentation>
+                <![CDATA[
                 A archive to scan for BootstrapDatabase annotations and execute the bootstrap code
                 before the archive is loaded by the container.
-            </xsd:documentation>
-        </xsd:annotation>
-        <xsd:sequence>
-            <xsd:element name="hibernate" type="hibernateProviderType" minOccurs="0" maxOccurs="1" />
-        </xsd:sequence>
+                ]]>
+            </xs:documentation>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="class" type="tns:classType" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
         <xs:attribute name="name" use="required" type="xs:string">
-            <xsd:annotation>
-                <xsd:documentation>
+            <xs:annotation>
+                <xs:documentation>
+                    <![CDATA[
                     A unique name that define the scan element.
-                </xsd:documentation>
-            </xsd:annotation>
+                    ]]>
+                </xs:documentation>
+            </xs:annotation>
         </xs:attribute>
         <xs:attribute name="filename" use="required" type="xs:string">
-            <xsd:annotation>
-                <xsd:documentation>
-                    The name of the archive to search for BootstrapDatabase annotations.
+            <xs:annotation>
+                <xs:documentation>
+                    <![CDATA[
+                   The name of the archive to search for BootstrapDatabase annotations.
                     e.g. my_archive.ear
-                </xsd:documentation>
-            </xsd:annotation>
+                    ]]>
+                </xs:documentation>
+            </xs:annotation>
         </xs:attribute>
-        <xs:attribute name="filter-on-name" use="optional" type="xs:string">
-         <xsd:annotation>
-                <xsd:documentation>
-                   Specify a list of archive files inside the root archive to search
-                   in for the BootstrapDatabase annotations. This will speedup the deployment
-                   process for large archive files.
-                   eg: "core.jar, submodule-a.jar, submodule-b.jar"
-                </xsd:documentation>
-            </xsd:annotation>
+    </xs:complexType>
+
+    <xs:complexType name="classType">
+        <xs:annotation>
+            <xs:documentation>
+                <![CDATA[
+                Fully qualified name of a class annotated with BootstrapDatabase annotation.
+                Adding this element effectively disables the scan for other BootStrapDatabase
+                annotated classes.
+                ]]>
+            </xs:documentation>
+        </xs:annotation>
+        <xs:attribute name="name" use="required" type="xs:string">
+            <xs:annotation>
+                <xs:documentation>
+                    <![CDATA[
+                    A unique name that define the class element.
+                    ]]>
+                </xs:documentation>
+            </xs:annotation>
         </xs:attribute>
-    </xsd:complexType>
+    </xs:complexType>
+
 </xs:schema>

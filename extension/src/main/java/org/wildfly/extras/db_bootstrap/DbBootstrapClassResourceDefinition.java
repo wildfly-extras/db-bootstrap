@@ -15,9 +15,6 @@
  */
 package org.wildfly.extras.db_bootstrap;
 
-import java.util.Arrays;
-import java.util.Collection;
-
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.PersistentResourceDefinition;
 import org.jboss.as.controller.ReloadRequiredRemoveStepHandler;
@@ -26,6 +23,9 @@ import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.operations.common.GenericSubsystemDescribeHandler;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.dmr.ModelType;
+
+import java.util.Arrays;
+import java.util.Collection;
 
 /**
  * @author Nicky Moelholm (moelholm@gmail.com)
@@ -36,7 +36,7 @@ class DbBootstrapClassResourceDefinition extends PersistentResourceDefinition {
 
     private DbBootstrapClassResourceDefinition() {
         super(DbBootstrapExtension.CLASS_PATH,
-                DbBootstrapExtension.getResolver(DbBootstrapExtension.RESOLVER),
+                DbBootstrapExtension.getResolver(),
                 new DbBootstrapClassAdd(),
                 ReloadRequiredRemoveStepHandler.INSTANCE);
     }

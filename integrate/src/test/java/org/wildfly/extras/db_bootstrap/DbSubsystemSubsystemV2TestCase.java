@@ -26,9 +26,17 @@ public class DbSubsystemSubsystemV2TestCase extends AbstractSubsystemBaseTest {
         super(DbBootstrapExtension.SUBSYSTEM_NAME, new DbBootstrapExtension());
     }
 
+    @Override
     @Test
-    public void testSchemaOfSubsystemTemplates() throws Exception {
+    public void testSubsystem() throws Exception {
+        standardSubsystemTest(null, false);
+    }
 
+    public void testSchemaOfSubsystemTemplates() {}
+
+    @Override
+    protected String getSubsystemXsdPath() throws Exception {
+        return "docs/schema/wildfly-bootstrap-2.0.xsd";
     }
 
     @Override

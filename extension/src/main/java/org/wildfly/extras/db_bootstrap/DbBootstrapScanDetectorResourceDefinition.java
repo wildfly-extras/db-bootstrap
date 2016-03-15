@@ -29,6 +29,7 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * @author Frank Vissing
@@ -70,5 +71,10 @@ class DbBootstrapScanDetectorResourceDefinition extends PersistentResourceDefini
     @Override
     public Collection<AttributeDefinition> getAttributes() {
         return Arrays.asList(FILENAME, FILTER_ON_NAME);
+    }
+
+    @Override
+    protected List<? extends PersistentResourceDefinition> getChildren() {
+        return Arrays.asList(DbBootstrapClassResourceDefinition.INSTANCE);
     }
 }

@@ -1,0 +1,6 @@
+<subsystem xmlns="urn:jboss:domain:db_bootstrap:2.0">
+    <bootstrap-deployments name="test">
+        <scan name="my-file" filename="my-file.ear" />
+        <scan name="my-file-2" filename="my-file-2.ear" />
+    </bootstrap-deployments>
+</subsystem>

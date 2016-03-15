@@ -24,8 +24,6 @@ import org.jboss.as.server.deployment.Phase;
 import org.jboss.dmr.ModelNode;
 import org.wildfly.extras.db_bootstrap.providers.HibernateBootstrapProvider;
 
-import java.util.LinkedList;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -35,7 +33,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 class DbBootstrapScanDetectorAdd extends AbstractBoottimeAddStepHandler {
 
-    private final AtomicInteger priorityDelta = new AtomicInteger(0);
+    private final AtomicInteger priorityDelta = new AtomicInteger(1);
 
     @Override
     protected void populateModel(ModelNode operation, ModelNode model) throws OperationFailedException {
@@ -46,39 +44,29 @@ class DbBootstrapScanDetectorAdd extends AbstractBoottimeAddStepHandler {
     @Override
     protected void performBoottime(OperationContext context, ModelNode operation, ModelNode model) throws OperationFailedException {
         String filename = model.get(DbBootstrapExtension.FILENAME_ATTR).asString();
-        ModelNode filterOnNameAttributeModelNode = model.get(DbBootstrapExtension.FILTER_ON_NAME_ATTR);
-
-        List<ModelNode> filterOnNames = new LinkedList<>();
-        if (filterOnNameAttributeModelNode.isDefined()) {
-            filterOnNames.addAll(filterOnNameAttributeModelNode.asList());
-        }
-
-        context.addStep(new DbBootstrapDeploymentChainStep(filterOnNames, filename), OperationContext.Stage.RUNTIME);
+        context.addStep(new DbBootstrapDeploymentChainStep(filename), OperationContext.Stage.RUNTIME);
     }
 
     private final class DbBootstrapDeploymentChainStep extends AbstractDeploymentChainStep {
 
-        private final List<ModelNode> filterOnNames;
         private final String filename;
 
-        DbBootstrapDeploymentChainStep(List<ModelNode> filterOnNames, String filename) {
-            this.filterOnNames = filterOnNames;
+        DbBootstrapDeploymentChainStep(String filename) {
             this.filename = filename;
         }
 
         @Override
         protected void execute(DeploymentProcessorTarget processorTarget) {
 
-            DbBootstrapLogger.ROOT_LOGGER.tracef("%s:'%s' %s:'%s'", DbBootstrapExtension.FILENAME_ATTR, filename,
-                    DbBootstrapExtension.FILTER_ON_NAME_ATTR, filterOnNames);
+            DbBootstrapLogger.ROOT_LOGGER.tracef("%s:'%s'", DbBootstrapExtension.FILENAME_ATTR, filename);
 
             try {
                 String subsystemName = DbBootstrapExtension.SUBSYSTEM_NAME;
-                int priority = Phase.PARSE_COMPOSITE_ANNOTATION_INDEX + 10 + priorityDelta.getAndIncrement();
+                int priority = Phase.FIRST_MODULE_USE_PERSISTENCE_CLASS_FILE_TRANSFORMER - priorityDelta.getAndIncrement();
                 DbBootstrapScanDetectorProcessor processor;
 
-                processor = new DbBootstrapScanDetectorProcessor(filename, filterOnNames, new HibernateBootstrapProvider());
-                processorTarget.addDeploymentProcessor(subsystemName, Phase.PARSE, priority, processor);
+                processor = new DbBootstrapScanDetectorProcessor(filename, new HibernateBootstrapProvider());
+                processorTarget.addDeploymentProcessor(subsystemName, Phase.FIRST_MODULE_USE, priority, processor);
 
             } catch (Exception e) {
                 DbBootstrapLogger.ROOT_LOGGER.error("Error when executing db-bootstrap deployment chain step", e);

@@ -18,15 +18,15 @@ package org.wildfly.extras.db_bootstrap.providers;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
-import org.hibernate.boot.registry.StandardServiceRegistry;
+import org.hibernate.boot.registry.BootstrapServiceRegistryBuilder;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
-import org.hibernate.cfg.Configuration;
+import org.hibernate.metamodel.Metadata;
+import org.hibernate.metamodel.MetadataSources;
 import org.wildfly.extras.db_bootstrap.DbBootstrapLogger;
 import org.wildfly.extras.db_bootstrap.annotations.BootstrapDatabase;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.URL;
 import java.util.Map;
 
 /**
@@ -88,14 +88,22 @@ public class HibernateBootstrapProvider implements BootstrapProvider {
      */
     private Session createSession(final String prefix, final String hibernateCfg, final ClassLoader classLoader)
             throws Exception {
-        URL resource = classLoader.getResource(hibernateCfg);
-        DbBootstrapLogger.ROOT_LOGGER.tracef("Using hibernate configuration file %s",hibernateCfg);
-        Configuration configuration = new Configuration();
-        configuration.configure(resource); // configures settings from hibernate.cfg.xml
-        configureSettingsFromSystemProperties(prefix,configuration);
-        StandardServiceRegistry serviceRegistry = new StandardServiceRegistryBuilder().applySettings(
-                configuration.getProperties()).build();
-        SessionFactory sessionFactory = configuration.buildSessionFactory(serviceRegistry);
+        SessionFactory sessionFactory = null;
+        DbBootstrapLogger.ROOT_LOGGER.tracef("Using hibernate configuration file %s", hibernateCfg);
+
+        BootstrapServiceRegistryBuilder serviceRegistryBuilder = new BootstrapServiceRegistryBuilder();
+        serviceRegistryBuilder.with(classLoader)
+                .with(this.getClass().getClassLoader());
+
+        StandardServiceRegistryBuilder standardRegistryBuilder = new StandardServiceRegistryBuilder(serviceRegistryBuilder.build())
+                .configure(hibernateCfg);
+
+        configureSettingsFromSystemProperties(prefix, standardRegistryBuilder);
+        Metadata metadata = new MetadataSources(standardRegistryBuilder.build() ).buildMetadata();
+
+        sessionFactory = metadata.getSessionFactoryBuilder()
+                .build();
+
         return sessionFactory.openSession();
     }
 
@@ -109,7 +117,7 @@ public class HibernateBootstrapProvider implements BootstrapProvider {
      *
      * @param configuration  - the runtime hibernate configuration object
      */
-    private void configureSettingsFromSystemProperties(String prefix, Configuration configuration) {
+    private void configureSettingsFromSystemProperties(String prefix, StandardServiceRegistryBuilder configuration) {
         String propertyPrefix = String.format("%s.%s", DBBOOTSTRAP_SYSTEM_PROPERTY_PREFIX, prefix);
         DbBootstrapLogger.ROOT_LOGGER.tracef(
                 "Searching for system properties with prefix %s to set and/or override hibernate configuration properties",
@@ -117,13 +125,10 @@ public class HibernateBootstrapProvider implements BootstrapProvider {
         for (Map.Entry<Object, Object> entrySet : (System.getProperties().entrySet())) {
             if (entrySet.getKey().toString().startsWith(propertyPrefix)) {
                     String hibernatePropertyName = entrySet.getKey().toString().replace(String.format("%s.", propertyPrefix), "");
-                    String oldHibernatePropertyValue = (configuration.getProperty(hibernatePropertyName) == null) ? " (New property)"
-                            : String.format(" (Replacing existing property with old value=%s)",
-                            configuration.getProperty(hibernatePropertyName));
                     String newHibernatePropertyValue = entrySet.getValue().toString();
-                    DbBootstrapLogger.ROOT_LOGGER.tracef("Setting hibernate property: %s=%s%s", hibernatePropertyName,
-                            newHibernatePropertyValue, oldHibernatePropertyValue);
-                    configuration.setProperty(hibernatePropertyName, newHibernatePropertyValue);
+                    DbBootstrapLogger.ROOT_LOGGER.tracef("Setting hibernate property: %s=%s", hibernatePropertyName,
+                            newHibernatePropertyValue);
+                    configuration.applySetting(hibernatePropertyName, newHibernatePropertyValue);
             }
         }
     }

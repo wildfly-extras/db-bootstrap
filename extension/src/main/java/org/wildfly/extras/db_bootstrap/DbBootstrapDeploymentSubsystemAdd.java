@@ -36,7 +36,7 @@ class DbBootstrapDeploymentSubsystemAdd extends AbstractBoottimeAddStepHandler {
         context.addStep(new AbstractDeploymentChainStep() {
                    @Override
                    protected void execute(DeploymentProcessorTarget processorTarget) {
-                       processorTarget.addDeploymentProcessor(DbBootstrapExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_WEB_DEPLOYMENT, new DbBootstrapDeploymentSubsystemDetectorProcessor());
+                       processorTarget.addDeploymentProcessor(DbBootstrapExtension.SUBSYSTEM_NAME, Phase.FIRST_MODULE_USE, Phase.FIRST_MODULE_USE_PERSISTENCE_CLASS_FILE_TRANSFORMER - 1, new DbBootstrapDeploymentSubsystemDetectorProcessor());
                    }
                }, OperationContext.Stage.RUNTIME);
     }

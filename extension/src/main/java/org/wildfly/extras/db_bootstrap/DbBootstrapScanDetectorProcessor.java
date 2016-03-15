@@ -16,43 +16,32 @@
 package org.wildfly.extras.db_bootstrap;
 
 import org.hibernate.Session;
-import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 import org.jboss.as.server.deployment.annotation.CompositeIndex;
 import org.jboss.as.server.deployment.module.ResourceRoot;
-import org.jboss.dmr.ModelNode;
 import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.AnnotationValue;
 import org.jboss.jandex.ClassInfo;
 import org.jboss.jandex.DotName;
 import org.jboss.jandex.MethodInfo;
-import org.jboss.modules.ModuleLoadException;
-import org.jboss.vfs.VFSUtils;
+import org.jboss.modules.Module;
 import org.jboss.vfs.VirtualFile;
-import org.jboss.vfs.VirtualFileFilter;
-import org.jboss.vfs.VirtualFileFilterWithAttributes;
-import org.jboss.vfs.VisitorAttributes;
 import org.wildfly.extras.db_bootstrap.annotations.BootstrapDatabase;
 import org.wildfly.extras.db_bootstrap.annotations.BootstrapSchema;
 import org.wildfly.extras.db_bootstrap.annotations.UpdateSchema;
-import org.wildfly.extras.db_bootstrap.matchfilter.FilenameContainFilter;
 import org.wildfly.extras.db_bootstrap.providers.BootstrapProvider;
 
-import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.stream.Stream;
+
+import static org.jboss.as.server.deployment.Attachments.*;
 
 /**
  * Reacts on the deployment process on the specified archives in the configuration. It scan all JAR archives for
@@ -72,22 +61,10 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
 
     private final String filename;
     private final BootstrapProvider provider;
-    private final FilenameContainFilter filterOnJarFilename;
 
-    public DbBootstrapScanDetectorProcessor(final String filename, final List<ModelNode> filterOnName, final BootstrapProvider provider) {
+    public DbBootstrapScanDetectorProcessor(final String filename, final BootstrapProvider provider) {
         this.filename = filename;
         this.provider = provider;
-        List<String> filter = new ArrayList<>(filterOnName.size());
-
-        for (ModelNode modelNode : filterOnName) {
-            filter.add("**/"+modelNode.asString());
-        }
-
-        this.filterOnJarFilename = new FilenameContainFilter(filter, VisitorAttributes.RECURSE);
-
-        if (!filterOnName.isEmpty()) {
-            DbBootstrapLogger.ROOT_LOGGER.infof("Archive : %s jar-filter %s", this.filename, filterOnJarFilename.toString());
-        }
     }
 
     @Override
@@ -95,14 +72,14 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
         DeploymentUnit deploymentUnit = phaseContext.getDeploymentUnit();
         String deploymentName = deploymentUnit.getName();
 
-        if (isSubdeployment(deploymentUnit)) {
+        if (deploymentUnit.getParent() != null) {
             deploymentName = deploymentUnit.getParent().getName();
         }
 
         if (deploymentName.equals(filename)) {
             long before = System.currentTimeMillis();
             try {
-                scanForAnnotationsAndProcessAnnotatedFiles(deploymentUnit,filterOnJarFilename);
+                processAnnotationIndex(deploymentUnit);
             } catch (Exception e) {
                 throw new DeploymentUnitProcessingException(e);
             }
@@ -113,9 +90,9 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
         }
     }
 
-    private void scanForAnnotationsAndProcessAnnotatedFiles(DeploymentUnit deploymentUnit, VirtualFileFilterWithAttributes filterOnJarFilename) {
+    private void processAnnotationIndex(DeploymentUnit deploymentUnit) {
         DotName dotName = DotName.createSimple(BootstrapDatabase.class.getName());
-        CompositeIndex index = deploymentUnit.getAttachment(Attachments.COMPOSITE_ANNOTATION_INDEX);
+        CompositeIndex index = deploymentUnit.getAttachment(COMPOSITE_ANNOTATION_INDEX);
         if (index == null) {
             return;
         }
@@ -125,16 +102,13 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
             return;
         }
 
-        ResourceRoot deploymentRoot = deploymentUnit.getAttachment(Attachments.DEPLOYMENT_ROOT);
+        ResourceRoot deploymentRoot = deploymentUnit.getAttachment(DEPLOYMENT_ROOT);
         VirtualFile root = deploymentRoot.getRoot();
 
         DbBootstrapLogger.ROOT_LOGGER.tracef("match on %s", root.getPathName());
         try {
-            Set<URL> classLoaderurls = getJarList(root, false, filterOnJarFilename);
-            if (classLoaderurls.size() > 0) {
-                ClassLoader classLoader = addDynamicResources(classLoaderurls, deploymentUnit);
-                processAnnotatedClasses(indexAnnotations, classLoader);
-             }
+            final Module module = deploymentUnit.getAttachment(MODULE);
+            processAnnotatedClasses(indexAnnotations, module.getClassLoader());
         } catch (Exception e) {
             DbBootstrapLogger.ROOT_LOGGER.error("Unable to process the internal jar files", e);
         }
@@ -187,9 +161,7 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
         public int compare(AnnotationInstance o1, AnnotationInstance o2) {
             int priority1 = o1.value("priority").asInt();
             int priority2 = o2.value("priority").asInt();
-            if (priority1 == priority2) {
-                return 0;
-            }
+
             return (priority1 > priority2 ? -1 : 1);
         }
     }
@@ -222,7 +194,7 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
     private void executeMethodWithParameters(AnnotationInstance annotatedInstance, ClassLoader classLoader, MethodInfo invoke, ClassInfo annotationTarget) {
         String className = annotationTarget.name().toString();
         try {
-            Class<?> clazz = Class.forName(className, true, classLoader);
+            Class<?> clazz = classLoader.loadClass(className);
             Object bootstrapClass = clazz.newInstance();
 
             DotName sessionName = DotName.createSimple("org.hibernate.Session");
@@ -233,7 +205,8 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
                     .isPresent();
 
             if (session) {
-                Method method = clazz.getMethod(invoke.name().toString(),Session.class);
+                Class<?> sessionClass = classLoader.loadClass(Session.class.getName());
+                Method method = clazz.getMethod(invoke.name().toString(), sessionClass);
                 String hibernateCfg = annotatedInstance.value("hibernateCfg").asString();
                 String prefix = Optional.ofNullable(annotatedInstance.value("name"))
                         .map(AnnotationValue::asString)
@@ -248,77 +221,10 @@ class DbBootstrapScanDetectorProcessor implements DeploymentUnitProcessor {
         }
     }
 
-    /**
-     * Return a list of URL's to all the children to the {@link VirtualFile}
-     *
-     * @param deploymentRoot
-     * @param filter - true if the jar filename filter should be applied
-     * @param filterOnJarFilename
-     * @return A arrays of {@link URL}
-     * @throws DeploymentUnitProcessingException
-     * @throws IOException
-     */
-    private Set<URL> getJarList(final VirtualFile deploymentRoot, boolean filter, VirtualFileFilter filterOnJarFilename) throws DeploymentUnitProcessingException,
-            IOException {
-        TreeSet<URL> uniqueArchiveUrls = new TreeSet<URL>(new UniqueArchiveUrlsComparator());
-        List<VirtualFile> entries;
-
-        if (filter) {
-            entries = deploymentRoot.getChildrenRecursively(filterOnJarFilename);
-        } else {
-            entries = deploymentRoot.getChildrenRecursively();
-        }
-
-        for (VirtualFile virtualFile : entries) {
-            try {
-                URL url = VFSUtils.getPhysicalURL(virtualFile);
-                uniqueArchiveUrls.add(url);
-            } catch (NullPointerException ignore) {
-                // Happens if 'filename' refers to a dir or file, which is not an archive or which is not inside an archive.
-                // These can safely be ignored.
-            }
-        }
-        return uniqueArchiveUrls;
-    }
-
-    private static class UniqueArchiveUrlsComparator implements Comparator<URL> {
-        @Override
-        public int compare(URL o1, URL o2) {
-            return o1.toString().compareTo(o2.toString());
-        }
-    }
-
     @Override
     public void undeploy(DeploymentUnit deploymentUnit) {
     }
 
-    /**
-     * Add all jar files as dynamic resources to a new class load.
-     *
-     * @param urls - List of all the jar files to add
-     * @param deploymentUnit - The deployment unit the resources should be added too
-     * @throws DeploymentUnitProcessingException
-     * @throws ModuleLoadException
-     */
-    private ClassLoader addDynamicResources(final Set<URL> urls, final DeploymentUnit deploymentUnit)
-            throws DeploymentUnitProcessingException, ModuleLoadException {
-        return URLClassLoader.newInstance(urls.toArray(new URL[0]), getClass().getClassLoader());
-    }
 
-    /**
-     * As the top level module (including its submodules) gets scanned, we don't want to scan its submodules seperately
-     * as well (would lead to double scanning)
-     * @param deploymentUnit - the dployment unit to test
-     * @return true if this is a sub deployment
-     */
-    private boolean isSubdeployment(DeploymentUnit deploymentUnit) {
-        boolean currentModuleIsSubmoduleInAnotherModule = deploymentUnit.getParent() != null;
-        if (currentModuleIsSubmoduleInAnotherModule) {
-            DbBootstrapLogger.ROOT_LOGGER.tracef("Not registering module '%s' for scaning, as it is a submodule of '%s'",
-                    deploymentUnit.getName(), deploymentUnit.getParent().getName());
-            return true;
-        }
-        return false;
-    }
 
 }
