@@ -21,27 +21,20 @@ import org.jboss.as.controller.PersistentResourceXMLParser;
 import static org.jboss.as.controller.PersistentResourceXMLDescription.builder;
 
 /**
- * @author Frank Vissing
  * @author Flemming Harms
  */
-class DbBootstrapSubsystemParser extends PersistentResourceXMLParser {
-
-    static final DbBootstrapSubsystemParser INSTANCE = new DbBootstrapSubsystemParser();
+class DbBootstrapSubsystemParser2_0 extends PersistentResourceXMLParser {
+    protected static final DbBootstrapSubsystemParser2_0 INSTANCE = new DbBootstrapSubsystemParser2_0();
     private static final PersistentResourceXMLDescription xmlDescription;
 
     static {
-        xmlDescription = builder(DbBootstrapRootResourceDefinition.INSTANCE, Namespace.DB_BOOTSTRAP_1_0.getUriString())
-            .addChild(builder(DbBootstrapDeploymentResourceDefinition.INSTANCE)
-                .addChild(builder(DbBootstrapScanDetectorResourceDefinition.INSTANCE)
-                    .addChild(builder(DbBootstrapClassResourceDefinition.INSTANCE)
-                            .addAttribute(DbBootstrapClassResourceDefinition.CLASSNAME)
-                     )
-                    .addAttribute(DbBootstrapScanDetectorResourceDefinition.FILENAME)
-                    .addAttribute(DbBootstrapScanDetectorResourceDefinition.FILTER_ON_NAME))
-                    )
-            .build();
+        xmlDescription = builder(DbBootstrapRootResourceDefinition.INSTANCE, Namespace.DB_BOOTSTRAP_2_0.getUriString())
+                .addChild(builder(DbBootstrapDeploymentResourceDefinition.INSTANCE)
+                        .addChild(builder(DbBootstrapScanDetectorResourceDefinition.INSTANCE)
+                                .addAttribute(DbBootstrapScanDetectorResourceDefinition.FILENAME))
+                )
+                .build();
     }
-
 
     @Override
     public PersistentResourceXMLDescription getParserDescription() {

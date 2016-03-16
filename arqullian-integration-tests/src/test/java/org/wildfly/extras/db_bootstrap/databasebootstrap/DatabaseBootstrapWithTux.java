@@ -25,13 +25,13 @@ import org.wildfly.extras.db_bootstrap.annotations.UpdateSchema;
 public class DatabaseBootstrapWithTux {
     
     @BootstrapSchema
-    private void createSchema() {
+    public void createSchema() {
         PersonSchema.createTablePerson();
         PersonSchema.insertPerson(10, "Tux");
     }
 
     @UpdateSchema
-    private void updateSchema() {
+    public void updateSchema() {
         PersonSchema.alterTablePersonAddColumnLastname();
         PersonSchema.setPersonLastName(10, "Thorvalds");
     }

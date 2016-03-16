@@ -21,7 +21,7 @@
 	<parent>
 		<groupId>org.wildfly.extras.db_bootstrap</groupId>
 		<artifactId>db-bootstrap-subsystem-parent</artifactId>
-		<version>1.0.7</version>
+		<version>1.0.8</version>
 		<relativePath>../pom.xml</relativePath>
 	</parent>
 
@@ -40,6 +40,10 @@
 		<dependency>
 			<groupId>org.hibernate</groupId>
 			<artifactId>hibernate-validator-annotation-processor</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.hibernate</groupId>
+			<artifactId>hibernate-envers</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.hibernate</groupId>

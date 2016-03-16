@@ -25,13 +25,13 @@ import org.wildfly.extras.db_bootstrap.annotations.UpdateSchema;
 public class DatabaseBootstrapNoCfgFileTester {
     
     @BootstrapSchema
-    private void createSchema() {
+    public void createSchema() {
         PersonSchema.createTablePerson();
         PersonSchema.insertPerson(2, "Jane");
     }
 
     @UpdateSchema
-    private void updateSchema() {
+    public void updateSchema() {
         PersonSchema.alterTablePersonAddColumnLastname();
         PersonSchema.setPersonLastName(2, "Way");
     }

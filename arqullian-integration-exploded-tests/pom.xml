@@ -22,12 +22,14 @@
 	<parent>
 		<groupId>org.wildfly.extras.db_bootstrap</groupId>
 		<artifactId>db-bootstrap-subsystem-parent</artifactId>
-		<version>1.0.7</version>
+		<version>1.0.8</version>
 		<relativePath>../pom.xml</relativePath>
 	</parent>
 
 	<artifactId>wildfly-arquillian-integration-exploded-tests</artifactId>
 	<name>Exploded Integration Tests</name>
+	<packaging>jar</packaging>
+
 	<description>Test cases for testing bootstrap with exploded EAR files</description>
 	
 	<dependencies>

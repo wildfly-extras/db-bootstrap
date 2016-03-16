@@ -13,8 +13,9 @@ This extension is currently aimed at Hibernate users. But it can also be used wi
 
 Prerequisite
 ---------------
-JDK 7
+JDK 8
 Maven 3.1.1
+Wildfly 9
 
 Build the module
 ---------------
@@ -42,9 +43,10 @@ To manual install to existing WildFly run
 --------------------------------------------
 To manual install the db_bootstrap follow the instructions
 
-- Create a new directory under wildfly home "modules/org/wildfly/extras/db_bootstrap/main/"
+- Create a new directory under wildfly home "modules/system/layers/db_bootstrap"
+- Download the latest [layers.conf](https://github.com/wildfly-extras/db-bootstrap/tree/master/integrate/src/main/resources/layers/layers.conf) from github and place it under "modules/"
 - Download the latest [module.xml](https://github.com/wildfly-extras/db-bootstrap/tree/master/integrate/src/main/resources/modules/org/wildfly/extras/db_bootstrap/main) from github and place it under "modules/org/wildfly/extras/db_bootstrap/main/"
-- Download the latest [releases](https://github.com/wildfly-extras/db-bootstrap/releases) and place it under "modules/org/wildfly/extras/db_bootstrap/main/". 
+- Download the latest [releases](https://github.com/wildfly-extras/db-bootstrap/releases) and place it under "modules/org/wildfly/extras/db_bootstrap/main/".
 - Add this `<extension module="org.wildfly.extras.db_bootstrap"/>` under the `<extensions>` block to your server configuration standalone.xml / domain.xml to enable the db_bootstrap module
 - Next step is to configure the module
 
@@ -54,7 +56,7 @@ For bootstrapping the deployment use the following example of a configuration, a
 
 	<subsystem xmlns="urn:jboss:domain:db_bootstrap:1.0">
 		<bootstrap-deployments name="myDeployments">
-			<scan name="myScan1" filename="bootstrap_test.ear" filter-on-name="bootstrap*.jar" />
+			<scan name="myScan1" filename="bootstrap_test.ear" />
 			<scan name="myScan2" filename="bootstrap_test-no-hibernate.ear" />
 		</bootstrap-deployments>
 	</subsystem>
@@ -74,7 +76,7 @@ To use db_bootstrap in your code you will need to add a Maven dependency to your
     <dependency>
         <groupId>org.wildfly.extras.db_bootstrap</groupId>
         <artifactId>db-bootstrap</artifactId>
-        <version>1.0.7</version>
+        <version>1.0.8</version>
         <scope>provided</scope>
     </dependency>
 
@@ -102,12 +104,12 @@ Example code
     public class BootstrapImpl {
 
         @BootstrapSchema
-        private void doBootstrap(Session session) throws SQLException {
+        public void doBootstrap(Session session) throws SQLException {
             // Create your database schema using the 'session' parameter
         }
     
         @UpdateSchema
-        private void doUpgrade(Session session) throws SQLException {
+        public void doUpgrade(Session session) throws SQLException {
             // Upgrade or update your database using the 'session' parameter
         }
     }

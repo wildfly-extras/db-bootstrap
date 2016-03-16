@@ -15,14 +15,6 @@
  */
 package org.wildfly.extras.db_bootstrap;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamWriter;
-
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.DefaultAttributeMarshaller;
 import org.jboss.as.controller.PersistentResourceDefinition;
@@ -32,6 +24,13 @@ import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.StringListAttributeDefinition;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
+
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamWriter;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+
 /**
  * @author Frank Vissing
  * @author Flemming Harms
@@ -76,6 +75,6 @@ class DbBootstrapScanDetectorResourceDefinition extends PersistentResourceDefini
 
     @Override
     protected List<? extends PersistentResourceDefinition> getChildren() {
-        return Collections.singletonList(DbBootstrapClassResourceDefinition.INSTANCE);
+        return Arrays.asList(DbBootstrapClassResourceDefinition.INSTANCE);
     }
 }

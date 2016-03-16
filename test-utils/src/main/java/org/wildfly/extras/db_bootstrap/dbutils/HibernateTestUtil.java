@@ -15,14 +15,14 @@
  */
 package org.wildfly.extras.db_bootstrap.dbutils;
 
-import java.net.URL;
-
 import org.hibernate.SQLQuery;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.hibernate.boot.registry.BootstrapServiceRegistryBuilder;
 import org.hibernate.boot.registry.StandardServiceRegistry;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
-import org.hibernate.cfg.Configuration;
+import org.hibernate.metamodel.Metadata;
+import org.hibernate.metamodel.MetadataSources;
 
 public class HibernateTestUtil {
 
@@ -31,11 +31,16 @@ public class HibernateTestUtil {
     public static SessionFactory getSessionFactory() {
         try {
             if (sessionFactory == null) {
-                URL configFile = HibernateTestUtil.class.getClassLoader().getResource("META-INF/hibernate.cfg.xml");
-                Configuration configuration = new Configuration();
-                configuration.configure(configFile); // configures settings from hibernate.cfg.xml
-                StandardServiceRegistry serviceRegistry = new StandardServiceRegistryBuilder().applySettings(configuration.getProperties()).build();
-                sessionFactory = configuration.buildSessionFactory(serviceRegistry);
+                BootstrapServiceRegistryBuilder serviceRegistryBuilder = new BootstrapServiceRegistryBuilder();
+                serviceRegistryBuilder.with(HibernateTestUtil.class.getClassLoader());
+
+                StandardServiceRegistry standardRegistry = new StandardServiceRegistryBuilder(serviceRegistryBuilder.build())
+                        .configure( "META-INF/hibernate.cfg.xml" )
+                        .build();
+                Metadata metadata = new MetadataSources( standardRegistry ).buildMetadata();
+
+                sessionFactory = metadata.getSessionFactoryBuilder()
+                        .build();
             }
         } catch (Throwable ex) {
             throw new ExceptionInInitializerError(ex);

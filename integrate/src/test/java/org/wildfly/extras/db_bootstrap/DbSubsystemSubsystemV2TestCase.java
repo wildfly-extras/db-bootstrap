@@ -15,20 +15,33 @@
  */
 package org.wildfly.extras.db_bootstrap;
 
+import org.jboss.as.subsystem.test.AbstractSubsystemBaseTest;
+import org.junit.Test;
+
 import java.io.IOException;
 
-import org.jboss.as.subsystem.test.AbstractSubsystemBaseTest;
-import org.wildfly.extras.db_bootstrap.DbBootstrapExtension;
+public class DbSubsystemSubsystemV2TestCase extends AbstractSubsystemBaseTest {
 
-public class DbSubsystemSubsystemTestCase extends AbstractSubsystemBaseTest {
-
-    public DbSubsystemSubsystemTestCase() {
+    public DbSubsystemSubsystemV2TestCase() {
         super(DbBootstrapExtension.SUBSYSTEM_NAME, new DbBootstrapExtension());
     }
 
     @Override
+    @Test
+    public void testSubsystem() throws Exception {
+        standardSubsystemTest(null, false);
+    }
+
+    public void testSchemaOfSubsystemTemplates() {}
+
+    @Override
+    protected String getSubsystemXsdPath() throws Exception {
+        return "docs/schema/wildfly-bootstrap-2.0.xsd";
+    }
+
+    @Override
     protected String getSubsystemXml() throws IOException {    	
-        return readResource("db_bootstrap-1.0.xml");
+        return readResource("db_bootstrap-2.0.xml");
     }
 
 }

@@ -28,7 +28,7 @@ import org.wildfly.extras.db_bootstrap.dbutils.HibernateTestUtil;
 public class DatabaseBootstrapTester {
 
     @BootstrapSchema
-    private void createSchema(Session session) {
+    public void createSchema(Session session) {
         HibernateTestUtil.createTestSchema(session);
         SQLQuery query = session.createSQLQuery("INSERT INTO PERSON (PersonId,Firstname) VALUES (1, 'John')");
         query.executeUpdate();
@@ -36,7 +36,7 @@ public class DatabaseBootstrapTester {
     }
 
     @UpdateSchema
-    private void updateSchema(Session session) {
+    public void updateSchema(Session session) {
         HibernateTestUtil.alterTestSchemaAddColumn(session,"Mobile");
         SQLQuery query = session.createSQLQuery("UPDATE PERSON SET Mobile ='555-1234' WHERE PersonId = '1'");
         query.executeUpdate();

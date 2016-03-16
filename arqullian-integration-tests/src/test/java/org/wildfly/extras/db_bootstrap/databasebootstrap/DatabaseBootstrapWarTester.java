@@ -29,7 +29,7 @@ import org.wildfly.extras.db_bootstrap.dbutils.HibernateTestUtil;
 public class DatabaseBootstrapWarTester {
 
     @BootstrapSchema
-    private void createSchema() {
+    public void createSchema() {
         Session session = HibernateTestUtil.getSessionFactory().openSession();
         Transaction tx = session.beginTransaction();
         HibernateTestUtil.createTestSchema(session);
@@ -40,7 +40,7 @@ public class DatabaseBootstrapWarTester {
     }
 
     @UpdateSchema
-    private void updateSchema() {
+    public void updateSchema() {
         Session session = HibernateTestUtil.getSessionFactory().openSession();
         Transaction tx = session.beginTransaction();
         HibernateTestUtil.alterTestSchemaAddColumn(session, "sidekick");

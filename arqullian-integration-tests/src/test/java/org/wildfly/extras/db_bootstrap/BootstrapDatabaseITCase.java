@@ -15,17 +15,6 @@
  */
 package org.wildfly.extras.db_bootstrap;
 
-import static org.hamcrest.CoreMatchers.hasItems;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
-
-import java.util.Arrays;
-import java.util.List;
-
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.persistence.Query;
-
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.OperateOnDeployment;
 import org.jboss.arquillian.junit.Arquillian;
@@ -42,10 +31,17 @@ import org.junit.runner.RunWith;
 import org.wildfly.extras.db_bootstrap.databasebootstrap.DatabaseBootstrapNoCfgFileTester;
 import org.wildfly.extras.db_bootstrap.databasebootstrap.DatabaseBootstrapTester;
 import org.wildfly.extras.db_bootstrap.databasebootstrap.DatabaseBootstrapWarTester;
-import org.wildfly.extras.db_bootstrap.databasebootstrap.DatabaseBootstrapWithDuke;
-import org.wildfly.extras.db_bootstrap.databasebootstrap.DatabaseBootstrapWithTux;
 import org.wildfly.extras.db_bootstrap.databasebootstrap.PersonSchema;
 import org.wildfly.extras.db_bootstrap.dbutils.HibernateTestUtil;
+
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
+import javax.persistence.Query;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.hamcrest.CoreMatchers.hasItems;
+import static org.junit.Assert.assertThat;
 
 /**
  * @author Flemming Harms 
@@ -61,7 +57,7 @@ public class BootstrapDatabaseITCase {
             "<hibernate-configuration>"+
             "   <session-factory>"+
             "        <property name=\"hibernate.connection.driver_class\">org.h2.Driver</property>"+
-            "        <property name=\"hibernate.connection.url\">jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;MVCC=true</property>"+
+            "        <property name=\"hibernate.connection.url\">jdbc:h2:mem:test;DB_CLOSE_DELAY=-1</property>"+
             "        <property name=\"hibernate.connection.username\">sa</property>"+
             "        <property name=\"hibernate.connection.password\">sa</property>"+
             "        <property name=\"javax.persistence.validation.mode\">none</property>"+
@@ -85,11 +81,6 @@ public class BootstrapDatabaseITCase {
         return archiveWithoutHibernate("-no-hibernate.war", DatabaseBootstrapNoCfgFileTester.class);
     }
 
-    @Deployment(order = 3, name = "with-explicitly-listed-classes")
-    public static Archive<?> deployWithExplicitlyListedClasses() throws Exception {
-        return archiveWithoutHibernate("-with-explicitly-listed-classes.war", DatabaseBootstrapWithDuke.class, DatabaseBootstrapWithTux.class);
-    }
-
     private static WebArchive archiveWithoutHibernate(String suffix, Class<?> ... bootstrapClasses) {
         WebArchive war = ShrinkWrap.create(WebArchive.class, ARCHIVE_NAME + suffix);
         JavaArchive lib = ShrinkWrap.create(JavaArchive.class, "bootstrap-no-hibernate.jar");
@@ -98,10 +89,11 @@ public class BootstrapDatabaseITCase {
         lib.addClasses(HibernateTestUtil.class);
         addBaseResources(lib);
         war.addAsLibraries(lib);
+        war.addAsWebInfResource(new StringAsset(generateEarDeploymentStructure("bootstrap-no-hibernate.jar")), "jboss-deployment-structure.xml");
         return war;
     }
     
-    @Deployment(order = 4, name = "dummy-exploded")
+    @Deployment(order = 3, name = "dummy-exploded")
     public static Archive<?> deployDummyExploded() throws Exception {
         EnterpriseArchive ear = ShrinkWrap.create(EnterpriseArchive.class, ARCHIVE_NAME + "-dummy-exploded.ear");
         JavaArchive lib = ShrinkWrap.create(JavaArchive.class, "bootstrap-dummy.jar");
@@ -110,18 +102,18 @@ public class BootstrapDatabaseITCase {
         return ear;
     }
     
-    @Deployment(order = 5, name = "war-inside-ear")
+    @Deployment(order = 4, name = "war-inside-ear")
     public static Archive<?> deployWarInsideEar() throws Exception {
-        WebArchive warLib = ShrinkWrap.create(WebArchive.class, "bootstrap.war");
+            WebArchive warLib = ShrinkWrap.create(WebArchive.class, "bootstrap.war");
         warLib.addClasses(DatabaseBootstrapWarTester.class);
         warLib.addClasses(HibernateTestUtil.class);
-        
-        JavaArchive lib = ShrinkWrap.create(JavaArchive.class, "bootstrap.jar");
-        addBaseResources(lib);
-        
+        warLib.addClasses(BootstrapDatabaseITCase.class);
+        warLib.addAsWebInfResource("META-INF/persistence.xml", "classes/META-INF/persistence.xml");
+        warLib.addAsWebInfResource(EmptyAsset.INSTANCE, ArchivePaths.create("classes/META-INF/beans.xml"));
+        warLib.addAsWebInfResource(new StringAsset(hibernate_cfg_xml), "classes/META-INF/hibernate.cfg.xml");
         EnterpriseArchive ear = ShrinkWrap.create(EnterpriseArchive.class, ARCHIVE_NAME + "-war-inside-ear.ear");
+        ear.addAsManifestResource(new StringAsset(generateEarDeploymentStructure("bootstrap.war")), "jboss-deployment-structure.xml");
         ear.addAsModule(warLib);
-        ear.addAsLibraries(lib);
         return ear;
     }
     
@@ -167,13 +159,24 @@ public class BootstrapDatabaseITCase {
         assertThat(result, hasItems((Object)"Batman","Robin"));
     }
 
-    @Test
-    @OperateOnDeployment("with-explicitly-listed-classes")
-    public void testRunBootstrapWithExplicitlyListedDatabaseBootstrapClasses() throws Exception {
-        Query dukeQuery = testEm.createNativeQuery("select * from person where PersonId = '9'");
-        List<Object> dukeResult = Arrays.asList((Object[]) dukeQuery.getSingleResult());
-        assertThat(dukeResult, hasItems((Object)"Duke","Javasson"));
-        Query tuxQuery = testEm.createNativeQuery("select * from person where PersonId = '10'");
-        assertThat(tuxQuery.getResultList().isEmpty(), is(true));
+    private static String generateEarDeploymentStructure(String archiveName) {
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<jboss-deployment-structure>\n" +
+                "<deployment>\n" +
+                "            <dependencies>\n" +
+                "                <module name = \"com.h2database.h2\" export=\"TRUE\" />\n" +
+                "                <module name = \"org.hibernate\" />\n" +
+                "                <module name = \"org.jboss.logging\" />\n" +
+                "                <module name = \"org.dom4j\" />\n" +
+                "                <module name = \"javax.api\" />\n" +
+                "                <module name = \"javax.persistence.api\" />\n" +
+                "                <module name = \"javax.transaction.api\" />\n" +
+                "                <module name = \"org.hibernate.commons-annotations\" />\n" +
+                "                <module name = \"org.javassist\" />" +
+                "            </dependencies>\n" +
+                "</deployment>\n"+
+                "</jboss-deployment-structure>\n";
+
     }
+
 }

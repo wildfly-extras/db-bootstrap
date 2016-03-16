@@ -15,15 +15,16 @@
  */
 package org.wildfly.extras.db_bootstrap;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.PersistentResourceDefinition;
 import org.jboss.as.controller.ReloadRequiredRemoveStepHandler;
 import org.jboss.as.controller.operations.common.GenericSubsystemDescribeHandler;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * @author Flemming Harms
@@ -52,6 +53,6 @@ class DbBootstrapRootResourceDefinition extends PersistentResourceDefinition {
 
     @Override
     protected List<? extends PersistentResourceDefinition> getChildren() {
-        return Collections.singletonList(DbBootstrapDeploymentResourceDefinition.INSTANCE);
+        return Arrays.asList(DbBootstrapDeploymentResourceDefinition.INSTANCE);
     }
 }

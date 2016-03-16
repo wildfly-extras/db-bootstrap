@@ -23,12 +23,13 @@ enum Namespace {
     // must be first
     UNKNOWN(null),
 
-    DB_BOOTSTRAP_1_0("urn:jboss:domain:db_bootstrap:1.0");
+    DB_BOOTSTRAP_1_0("urn:jboss:domain:db_bootstrap:1.0"),
+    DB_BOOTSTRAP_2_0("urn:jboss:domain:db_bootstrap:2.0");
 
     /**
      * The current namespace version.
      */
-    public static final Namespace CURRENT = DB_BOOTSTRAP_1_0;
+    public static final Namespace CURRENT = DB_BOOTSTRAP_2_0;
 
     private final String name;
 
@@ -48,7 +49,7 @@ enum Namespace {
     private static final Map<String, Namespace> MAP;
 
     static {
-        final Map<String, Namespace> map = new HashMap<String, Namespace>();
+        final Map<String, Namespace> map = new HashMap<>();
         for (Namespace namespace : values()) {
             final String name = namespace.getUriString();
             if (name != null) { map.put(name, namespace); }

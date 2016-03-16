@@ -16,16 +16,18 @@
     limitations under the License.
 
 -->
-<!DOCTYPE hibernate-configuration PUBLIC
-		"-//Hibernate/Hibernate Configuration DTD 3.0//EN"
-		"http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
-<hibernate-configuration>
-	<session-factory>
-		<property name="hibernate.connection.driver_class">org.h2.Driver</property>
-		<property name="hibernate.connection.url">jdbc:h2:mem:test;DB_CLOSE_DELAY=-1</property>
-		<property name="hibernate.connection.username">sa</property>
-		<property name="hibernate.connection.password">sa</property>
-		<property name="javax.persistence.validation.mode">none</property>
-		<property name="hbm2ddl.auto">validate</property>
-	</session-factory>
-</hibernate-configuration>
+<jboss-deployment-structure>
+    <deployment>
+        <dependencies>
+            <module name="com.h2database.h2" export="TRUE"/>
+            <module name="org.hibernate"/>
+            <module name="org.jboss.logging"/>
+            <module name="org.dom4j"/>
+            <module name="javax.api"/>
+            <module name="javax.persistence.api"/>
+            <module name="javax.transaction.api"/>
+            <module name="org.hibernate.commons-annotations"/>
+            <module name="org.javassist"/>
+        </dependencies>
+    </deployment>
+</jboss-deployment-structure>
