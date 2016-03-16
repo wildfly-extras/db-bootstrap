@@ -11,6 +11,12 @@ phase the database schema is updated (by running any update scripts if needed).
 
 This extension is currently aimed at Hibernate users. But it can also be used without Hibernate (although you won't get automatic database connectivity etc).
 
+Build Status
+---------------
+
+[![Build Status](https://travis-ci.org/wildfly-extras/db-bootstrap.svg?branch=master)](https://travis-ci.org/wildfly-extras/db-bootstrap)
+
+
 Prerequisite
 ---------------
 JDK 8
