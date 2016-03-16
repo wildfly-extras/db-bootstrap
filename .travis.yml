@@ -1,4 +1,4 @@
 language: JAVA
-script: mvn -P arquillian-wildfly-managed clean install
+script: mvn -DskipTests=true -P arquillian-wildfly-managed install
 jdk:
   - oraclejdk8
