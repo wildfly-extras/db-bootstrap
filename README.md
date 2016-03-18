@@ -73,8 +73,6 @@ The `<bootstrap-deployments>` element and the `<scan>` element(s) must contain a
 
 The attribute `filename` is required on `<scan>` element(s), and must contain the name of the deployed archive, that you want to scan.
 
-The attribute `filter-on-name` is optional, and is used to specify which archives you want to scan (for classes annotated with `@BootstrapDatabase`). The attribute can use `*` as wildcard, e.g. use `filter-on-name="tada*/*.jar"`. Separate multiple paths by comma (`,`), e.g. `filter-on-name="first.jar, second.jar"`.    
-
 Add db_bootstrap as dependency to your project
 ----------------------------------------------
 To use db_bootstrap in your code you will need to add a Maven dependency to your project. Insert the following in your pom.xml file
